@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-12">
+    <div class="flex justify-between items-center mb-12">
+        <div>
+            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">Doctor Workspace</h1>
+            <p class="text-slate-500 mt-2 font-medium">Manage your consultations and health records</p>
+        </div>
+        <div class="bg-blue-50 px-6 py-4 rounded-[2rem] border border-blue-100 flex items-center gap-3">
+            <div class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+            <span class="text-sm font-black text-blue-600 uppercase tracking-widest">{{ appointments|length }} Appointments Today</span>
+        </div>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-10">
+        
+        <div class="lg:col-span-2 space-y-10">
+            <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-100">
+                <div class="flex items-center gap-4 mb-10">
+                    <div class="bg-blue-100 p-4 rounded-3xl">
+                        <i data-lucide="calendar" class="w-8 h-8 text-blue-600"></i>
+                    </div>
+                    <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Upcoming Schedule</h2>
+                </div>
+
+                <div class="space-y-6">
+                    {% if appointments %}
+                        {% for apt in appointments %}
+                        <div class="p-8 border border-slate-100 rounded-[2rem] bg-slate-50 hover:bg-white hover:border-blue-600/20 hover:shadow-xl transition-all group">
+                            <div class="flex justify-between items-start">
+                                <div class="flex gap-6">
+                                    <div class="w-16 h-16 bg-slate-200 rounded-2xl flex items-center justify-center font-black text-slate-400 text-2xl uppercase">
+                                        {{ apt.patient.name[0] }}
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{{ apt.patient.name }}</h3>
+                                        <div class="flex items-center gap-3 mt-2">
+                                            <span class="text-xs font-bold text-slate-400 flex items-center gap-1 uppercase tracking-widest">
+                                                <i data-lucide="clock" class="w-3 h-3"></i> {{ apt.date.strftime('%H:%M') }}
+                                            </span>
+                                            <span class="text-xs font-bold text-slate-400 flex items-center gap-1 uppercase tracking-widest">
+                                                <i data-lucide="calendar-days" class="w-3 h-3"></i> {{ apt.date.strftime('%d %b') }}
+                                            </span>
+                                        </div>
+                                        <div class="mt-4 p-4 bg-white rounded-2xl border border-slate-100 text-sm font-medium text-slate-600">
+                                            <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest mr-3">Reason:</span>
+                                            {{ apt.reason or "Routine Checkup" }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-4">
+                                    <span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest 
+                                        {% if apt.status == 'confirmed' %}bg-emerald-100 text-emerald-700
+                                        {% elif apt.status == 'pending' %}bg-amber-100 text-amber-700
+                                        {% else %}bg-slate-200 text-slate-600{% endif %}">
+                                        {{ apt.status }}
+                                    </span>
+                                    <div class="flex gap-2">
+                                        <a 
+                                            href="{{ url_for('consultation.chat', user_id=apt.patient.id) }}"
+                                            class="p-3 bg-white text-blue-600 border border-slate-200 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-lg"
+                                        >
+                                            <i data-lucide="message-circle" class="w-5 h-5"></i>
+                                        </a>
+                                        <a 
+                                            href="{{ url_for('consultation.video_call', user_id=apt.patient.id) }}"
+                                            class="p-3 bg-white text-emerald-600 border border-slate-200 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-lg"
+                                        >
+                                            <i data-lucide="video" class="w-5 h-5"></i>
+                                        </a>
+                                        {% if apt.status == 'confirmed' %}
+                                        <button 
+                                            onclick="openPrescriptionModal({{ apt.patient.id }}, {{ apt.id }}, '{{ apt.patient.name }}')"
+                                            class="p-3 bg-white text-blue-600 border border-slate-200 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-lg"
+                                            title="Generate Prescription"
+                                        >
+                                            <i data-lucide="file-text" class="w-5 h-5"></i>
+                                        </button>
+                                        {% endif %}
+                                        {% if apt.status == 'pending' %}
+                                        <button 
+                                            onclick="updateStatus({{ apt.id }}, 'confirmed')"
+                                            class="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg"
+                                        >
+                                            <i data-lucide="check-circle" class="w-5 h-5"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-20 bg-slate-50 rounded-[2.5rem] border border-dashed border-slate-200">
+                            <i data-lucide="calendar-off" class="w-16 h-16 mx-auto mb-6 text-slate-200"></i>
+                            <p class="text-slate-400 font-extrabold uppercase tracking-widest text-sm">No Appointments Scheduled</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-10">
+            <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-100 sticky top-28">
+                <div class="flex items-center gap-4 mb-10">
+                    <div class="bg-emerald-100 p-4 rounded-3xl">
+                        <i data-lucide="users" class="w-8 h-8 text-emerald-600"></i>
+                    </div>
+                    <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Patient Registry</h2>
+                </div>
+
+                <div class="space-y-6">
+                    {% if patients %}
+                        {% for patient in patients %}
+                        <div class="p-6 border border-slate-100 rounded-3xl bg-slate-50 hover:bg-white hover:border-emerald-600/20 hover:shadow-xl transition-all group cursor-pointer">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-slate-200 rounded-2xl flex items-center justify-center font-black text-slate-400 text-lg uppercase">
+                                    {{ patient.name[0] }}
+                                </div>
+                                <div>
+                                    <h4 class="font-black text-slate-900 group-hover:text-emerald-600 transition-colors">{{ patient.name }}</h4>
+                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Last visited: 2 days ago</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-10">
+                            <i data-lucide="user-minus" class="w-10 h-10 mx-auto mb-4 text-slate-200"></i>
+                            <p class="text-slate-400 font-extrabold uppercase tracking-widest text-[10px]">No Patient Data</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Prescription Modal -->
+<div id="prescription-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+    <div class="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div class="p-8 bg-blue-600 text-white flex justify-between items-center">
+            <div>
+                <h3 class="text-2xl font-black tracking-tight">Digital Prescription</h3>
+                <p class="text-blue-100 text-xs font-bold uppercase tracking-widest mt-1" id="modal-patient-name"></p>
+            </div>
+            <button onclick="closePrescriptionModal()" class="p-2 hover:bg-white/10 rounded-xl transition-all">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+        
+        <div class="p-8 space-y-6">
+            <div id="medicines-list" class="space-y-4">
+                <div class="medicine-row grid grid-cols-3 gap-4">
+                    <input type="text" placeholder="Medicine Name" class="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
+                    <input type="text" placeholder="Dosage (e.g. 1-0-1)" class="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
+                    <input type="text" placeholder="Duration" class="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <button onclick="addMedicineRow()" class="flex items-center gap-2 text-blue-600 font-black text-xs uppercase tracking-widest hover:underline">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Add Medicine
+                </button>
+                <div class="h-4 w-[1px] bg-slate-200"></div>
+                <button onclick="clearMedicines()" class="flex items-center gap-2 text-red-400 font-black text-[10px] uppercase tracking-widest hover:text-red-600 transition-colors">
+                    <i data-lucide="trash-2" class="w-3 h-3"></i> Clear List
+                </button>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Doctor's Advice / Notes</label>
+                <textarea id="prescription-notes" class="w-full h-32 p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium resize-none outline-none focus:ring-4 focus:ring-blue-500/10" placeholder="e.g. Avoid cold water, complete bed rest..."></textarea>
+            </div>
+
+            <button id="save-prescription-btn" class="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-lg hover:bg-blue-700 shadow-2xl shadow-blue-500/20 transition-all active:scale-[0.98]">
+                Generate & Send Prescription
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentPatientId = null;
+    let currentAppointmentId = null;
+
+    async function updateStatus(aptId, status) {
+        try {
+            const response = await fetch('/consultation/update-appointment-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ appointment_id: aptId, status: status })
+            });
+            if (response.ok) {
+                window.location.reload();
+            }
+        } catch (err) {
+            console.error('Failed to update status:', err);
+        }
+    }
+
+    function openPrescriptionModal(patientId, aptId, patientName) {
+        currentPatientId = patientId;
+        currentAppointmentId = aptId;
+        document.getElementById('modal-patient-name').innerText = `Patient: ${patientName}`;
+        document.getElementById('prescription-modal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closePrescriptionModal() {
+        document.getElementById('prescription-modal').classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+
+    function addMedicineRow() {
+        const list = document.getElementById('medicines-list');
+        const row = document.createElement('div');
+        row.className = 'medicine-row grid grid-cols-3 gap-4 animate-in slide-in-from-top-2 duration-200';
+        row.innerHTML = `
+            <input type="text" placeholder="Medicine Name" class="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
+            <input type="text" placeholder="Dosage (e.g. 1-0-1)" class="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
+            <input type="text" placeholder="Duration" class="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
+        `;
+        list.appendChild(row);
+    }
+
+    function clearMedicines() {
+        const list = document.getElementById('medicines-list');
+        list.innerHTML = `
+            <div class="medicine-row grid grid-cols-3 gap-4">
+                <input type="text" placeholder="Medicine Name" class="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
+                <input type="text" placeholder="Dosage (e.g. 1-0-1)" class="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
+                <input type="text" placeholder="Duration" class="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
+            </div>
+        `;
+    }
+
+    document.getElementById('save-prescription-btn').addEventListener('click', async () => {
+        const rows = document.querySelectorAll('.medicine-row');
+        const medicines = Array.from(rows).map(row => {
+            const inputs = row.querySelectorAll('input');
+            return {
+                name: inputs[0].value,
+                dosage: inputs[1].value,
+                duration: inputs[2].value
+            };
+        }).filter(m => m.name);
+
+        const notes = document.getElementById('prescription-notes').value;
+
+        if (medicines.length === 0) {
+            alert('Please add at least one medicine');
+            return;
+        }
+
+        const btn = document.getElementById('save-prescription-btn');
+        btn.disabled = true;
+        btn.innerText = 'Generating...';
+
+        try {
+            const response = await fetch('/doctor/create-prescription', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    patient_id: currentPatientId,
+                    appointment_id: currentAppointmentId,
+                    medicines: medicines,
+                    notes: notes
+                })
+            });
+            const data = await response.json();
+            alert(data.message);
+            closePrescriptionModal();
+            window.location.reload();
+        } catch (err) {
+            alert('Failed to generate prescription');
+            btn.disabled = false;
+            btn.innerText = 'Generate & Send Prescription';
+        }
+    });
+
+    async function updateStatus(aptId, status) {
+        try {
+            const response = await fetch('/consultation/update-appointment-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ appointment_id: aptId, status: status })
+            });
+            const data = await response.json();
+            alert(data.message || data.error);
+            window.location.reload();
+        } catch (err) {
+            alert('Update failed');
+        }
+    }
+</script>
+{% endblock %}

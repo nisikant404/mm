@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-slate-50 px-6 py-12">
+    <div class="max-w-md w-full bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-100">
+        <div class="text-center mb-10">
+            <div class="inline-flex p-4 bg-blue-100 rounded-[1.5rem] mb-6">
+                <i data-lucide="user-plus" class="w-8 h-8 text-blue-600"></i>
+            </div>
+            <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Create Account</h2>
+            <p class="text-slate-500 mt-2 font-medium">Join our advanced medical platform</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.register') }}" class="space-y-4">
+            <div>
+                <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Full Name</label>
+                <input type="text" name="name" required class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium" placeholder="John Doe">
+            </div>
+            <div>
+                <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Email Address</label>
+                <input type="email" name="email" required class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium" placeholder="your@email.com">
+            </div>
+            <div>
+                <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Password</label>
+                <input type="password" name="password" required class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium" placeholder="••••••••">
+            </div>
+            <div>
+                <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Role</label>
+                <select name="role" id="role-select" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium">
+                    <option value="patient">Patient</option>
+                    <option value="doctor">Doctor</option>
+                </select>
+            </div>
+            <div id="patient-fields" class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Age</label>
+                    <input type="number" name="age" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium" placeholder="25">
+                </div>
+                <div>
+                    <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Gender</label>
+                    <select name="gender" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium">
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+            <div id="spec-field" class="hidden">
+                <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Specialization</label>
+                <input type="text" name="specialization" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium" placeholder="Cardiology, Neurology, etc.">
+            </div>
+            <button type="submit" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] mt-6">Register Now</button>
+        </form>
+
+        <p class="text-center mt-10 text-slate-500 font-medium">
+            Already have an account? 
+            <a href="{{ url_for('auth.login') }}" class="text-blue-600 font-bold hover:underline">Login Here</a>
+        </p>
+    </div>
+</div>
+
+<script>
+    document.getElementById('role-select').addEventListener('change', function() {
+        document.getElementById('spec-field').classList.toggle('hidden', this.value !== 'doctor');
+        document.getElementById('patient-fields').classList.toggle('hidden', this.value !== 'patient');
+    });
+</script>
+{% endblock %}

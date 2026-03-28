@@ -1,0 +1,11 @@
+Flask
+Flask-SQLAlchemy
+Flask-Login
+Flask-SocketIO
+Flask-Cors
+Flask-Bcrypt
+python-dotenv
+Pillow
+google-genai
+pypdf
+pymupdf

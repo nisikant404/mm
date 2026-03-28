@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto h-[calc(100vh-8rem)] my-4 bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col border border-slate-100">
+    <div class="p-8 bg-blue-600 text-white flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center font-black text-2xl uppercase">
+                {{ target_user.name[0] }}
+            </div>
+            <div>
+                <h2 class="text-xl font-black tracking-tight">Consultation with Dr. {{ target_user.name }}</h2>
+                <p class="text-xs text-blue-100 font-bold uppercase tracking-widest">End-to-end Encrypted Session</p>
+            </div>
+        </div>
+        <a href="{{ url_for('consultation.video_call', user_id=target_user.id) }}" class="p-4 bg-white/10 hover:bg-white/20 rounded-2xl transition-all">
+            <i data-lucide="video" class="w-6 h-6"></i>
+        </a>
+    </div>
+
+    <div id="messages-container" class="flex-1 overflow-y-auto p-8 space-y-6 bg-slate-50">
+        {% if history %}
+            {% for msg in history %}
+                <div class="flex {% if msg.sender_id == current_user.id %}justify-end{% else %}justify-start{% endif %}">
+                    <div class="max-w-[70%] p-5 rounded-[2rem] shadow-sm text-sm font-bold {% if msg.sender_id == current_user.id %}bg-blue-600 text-white rounded-tr-none{% else %}bg-white text-slate-700 rounded-tl-none border border-slate-100{% endif %}">
+                        {{ msg.content }}
+                        <div class="text-[9px] mt-2 opacity-60 {% if msg.sender_id == current_user.id %}text-right{% else %}text-left{% endif %} uppercase tracking-widest">
+                            {{ msg.timestamp.strftime('%H:%M') }}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <form id="chat-form" class="p-8 bg-white border-t border-slate-100 flex items-center gap-4">
+        <button type="button" class="text-slate-400 hover:text-blue-600 p-2"><i data-lucide="paperclip" class="w-6 h-6"></i></button>
+        <input 
+            type="text" 
+            id="message-input"
+            class="flex-1 bg-slate-50 border-none focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-4 px-6 text-sm font-bold placeholder:text-slate-300" 
+            placeholder="Type your message here..."
+        >
+        <button type="submit" class="bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all active:scale-95">
+            <i data-lucide="send" class="w-6 h-6"></i>
+        </button>
+    </form>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+<script>
+    const socket = io();
+    const currentUserId = {{ current_user.id }};
+    const targetUserId = {{ target_user.id }};
+    const room = [currentUserId, targetUserId].sort((a, b) => a - b).join('-');
+
+    socket.emit('join_room', { room: room });
+
+    const chatForm = document.getElementById('chat-form');
+    const messageInput = document.getElementById('message-input');
+    const container = document.getElementById('messages-container');
+    container.scrollTop = container.scrollHeight;
+
+    chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const content = messageInput.value.trim();
+        if (!content) return;
+
+        const data = {
+            room: room,
+            sender: currentUserId,
+            content: content,
+            timestamp: new Date().toISOString()
+        };
+
+        socket.emit('send_message', data);
+        appendMessage(data);
+        messageInput.value = '';
+    });
+
+    socket.on('receive_message', (data) => {
+        if (data.sender !== currentUserId) {
+            appendMessage(data);
+        }
+    });
+
+    function appendMessage(data) {
+        const isMe = data.sender === currentUserId;
+        const div = document.createElement('div');
+        div.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
+        div.innerHTML = `
+            <div class="max-w-[70%] p-5 rounded-[2rem] shadow-sm text-sm font-bold ${
+                isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white text-slate-700 rounded-tl-none border border-slate-100'
+            }">
+                ${data.content}
+                <div class="text-[9px] mt-2 opacity-60 ${isMe ? 'text-right' : 'text-left'} uppercase tracking-widest">
+                    ${new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+    }
+</script>
+{% endblock %}

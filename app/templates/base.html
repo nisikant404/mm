@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MedMining AI{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="bg-[#f8fafc]">
+    <nav class="sticky top-0 z-50 glass border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-3">
+                    <a href="{{ url_for('index') }}" class="flex items-center gap-2">
+                        <div class="bg-blue-600 p-2 rounded-xl">
+                            <i data-lucide="activity" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <span class="text-xl font-bold text-slate-900 tracking-tight">MedMining AI</span>
+                    </a>
+                </div>
+
+                <div class="hidden md:flex items-center gap-8">
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.role == 'patient' %}
+                            <a href="{{ url_for('patient.dashboard') }}" class="text-sm font-semibold text-slate-600 hover:text-blue-600">Dashboard</a>
+                            <a href="{{ url_for('patient.symptom_checker') }}" class="text-sm font-semibold text-slate-600 hover:text-blue-600 flex items-center gap-1">
+                                <i data-lucide="brain-circuit" class="w-4 h-4 text-blue-500"></i> AI Symptom Checker
+                            </a>
+                            <a href="{{ url_for('patient.lab_analyzer') }}" class="text-sm font-semibold text-slate-600 hover:text-blue-600 flex items-center gap-1">
+                                <i data-lucide="test-tube-2" class="w-4 h-4 text-emerald-500"></i> Lab Analyzer
+                            </a>
+                            <a href="{{ url_for('patient.medicine_analyzer') }}" class="text-sm font-semibold text-slate-600 hover:text-blue-600">Analyze Medicine</a>
+                        {% else %}
+                            <a href="{{ url_for('doctor.dashboard') }}" class="text-sm font-semibold text-slate-600 hover:text-blue-600">Workspace</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+
+                <div class="flex items-center gap-4">
+                    {% if current_user.is_authenticated %}
+                        <!-- Notifications -->
+                        <div class="relative group">
+                            <button id="notif-btn" class="p-2 text-slate-500 hover:text-blue-600 transition-all relative">
+                                <i data-lucide="bell" class="w-5 h-5"></i>
+                                {% set unread_count = current_user.id | get_unread_count %}
+                                {% if unread_count > 0 %}
+                                    <span id="notif-badge" class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                                {% endif %}
+                            </button>
+                            <!-- Dropdown -->
+                            <div id="notif-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 py-4 z-[60]">
+                                <div class="px-6 mb-4 flex justify-between items-center">
+                                    <h3 class="font-black text-slate-900">Notifications</h3>
+                                    <button onclick="markAllRead()" class="text-[10px] font-bold text-blue-600 uppercase tracking-widest hover:text-blue-700">Mark all as read</button>
+                                </div>
+                                <div id="notif-list" class="max-h-96 overflow-y-auto px-2">
+                                    {% set recent_notifs = current_user.id | get_recent_notifications %}
+                                    {% if recent_notifs %}
+                                        {% for notif in recent_notifs %}
+                                            <div class="p-4 hover:bg-slate-50 rounded-xl transition-all mb-1 {% if not notif.is_read %}bg-blue-50/50{% endif %}">
+                                                <p class="text-sm font-bold text-slate-800">{{ notif.title }}</p>
+                                                <p class="text-xs text-slate-500 mt-1">{{ notif.message }}</p>
+                                                <p class="text-[10px] text-slate-400 mt-2 uppercase tracking-widest">{{ notif.created_at.strftime('%H:%M, %d %b') }}</p>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="p-8 text-center">
+                                            <i data-lucide="bell-off" class="w-10 h-10 text-slate-200 mx-auto mb-3"></i>
+                                            <p class="text-sm font-bold text-slate-400">No new notifications</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-slate-200">
+                            <i data-lucide="user" class="w-4 h-4 text-slate-500"></i>
+                            <span class="text-sm font-bold text-slate-700">{{ current_user.name }}</span>
+                        </div>
+                        <a href="{{ url_for('auth.logout') }}" class="p-2 text-slate-500 hover:text-red-600"><i data-lucide="log-out" class="w-5 h-5"></i></a>
+                    {% else %}
+                        <a href="{{ url_for('auth.login') }}" class="text-sm font-bold text-slate-600 hover:text-blue-600">Login</a>
+                        <a href="{{ url_for('auth.register') }}" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition-all">Join Platform</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="max-w-7xl mx-auto px-4 mt-4">
+                        <div class="p-4 rounded-xl {% if category == 'success' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+                            {{ message }}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        // Notification Toggle
+        const notifBtn = document.getElementById('notif-btn');
+        const notifDropdown = document.getElementById('notif-dropdown');
+        if (notifBtn) {
+            notifBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                notifDropdown.classList.toggle('hidden');
+            });
+            document.addEventListener('click', () => notifDropdown.classList.add('hidden'));
+            notifDropdown.addEventListener('click', (e) => e.stopPropagation());
+        }
+
+        async function markAllRead() {
+            try {
+                const response = await fetch('/patient/notifications/mark-read', { method: 'POST' });
+                if (response.ok) {
+                    const badge = document.getElementById('notif-badge');
+                    if (badge) badge.remove();
+                    // Optionally refresh the list UI or just reload
+                    window.location.reload();
+                }
+            } catch (err) {
+                console.error('Failed to mark notifications as read:', err);
+            }
+        }
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

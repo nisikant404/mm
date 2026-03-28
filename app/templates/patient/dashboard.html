@@ -1,0 +1,555 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-12">
+    <div class="grid lg:grid-cols-3 gap-10">
+        
+        <div class="lg:col-span-2 space-y-10">
+            <!-- Health Analytics Card -->
+            <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-100">
+                <div class="flex items-center justify-between mb-10">
+                    <div class="flex items-center gap-4">
+                        <div class="bg-indigo-100 p-4 rounded-3xl">
+                            <i data-lucide="trending-up" class="w-8 h-8 text-indigo-600"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Health Analytics</h2>
+                            <p class="text-slate-500 font-medium text-[10px] uppercase tracking-widest mt-1">Risk Mining Overview</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="{{ url_for('patient.symptom_checker') }}" class="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm" title="AI Symptom Checker">
+                            <i data-lucide="brain-circuit" class="w-5 h-5"></i>
+                        </a>
+                        <a href="{{ url_for('patient.lab_analyzer') }}" class="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm" title="Lab Report Risk Mining">
+                            <i data-lucide="microscope" class="w-5 h-5"></i>
+                        </a>
+                        <a href="{{ url_for('patient.medicine_analyzer') }}" class="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Medicine Vision">
+                            <i data-lucide="pill" class="w-5 h-5"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="h-64">
+                    <canvas id="healthChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden relative group">
+                <div class="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
+                    <i data-lucide="shield-alert" class="w-32 h-32 text-red-600"></i>
+                </div>
+                
+                <div class="flex items-center gap-4 mb-10">
+                    <div class="bg-red-100 p-4 rounded-3xl">
+                        <i data-lucide="zap" class="w-8 h-8 text-red-600"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Predictive Risk Mining</h2>
+                        <p class="text-slate-500 font-medium">Mine health data for potential future risks</p>
+                    </div>
+                </div>
+
+                <!-- AI Model Selector -->
+                <div class="mb-8 space-y-3">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <i data-lucide="cpu" class="w-3 h-3"></i> Select AI Intelligence
+                    </label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" onclick="setAI('gemini-1.5-flash')" id="btn-flash-risk" class="ai-btn active p-3 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all flex flex-col items-center gap-1">
+                            <span class="text-blue-600">Gemini Flash</span>
+                            <span class="text-[8px] opacity-50">Fast & Efficient</span>
+                        </button>
+                        <button type="button" onclick="setAI('gemini-1.5-pro')" id="btn-pro-risk" class="ai-btn p-3 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all flex flex-col items-center gap-1">
+                            <span class="text-indigo-600">Gemini Pro</span>
+                            <span class="text-[8px] opacity-50">Deep Reasoning</span>
+                        </button>
+                    </div>
+                    <input type="hidden" id="ai-model-risk" value="gemini-1.5-flash">
+                </div>
+
+                <div class="space-y-6">
+                    <textarea 
+                        id="symptoms-input"
+                        class="w-full h-40 p-6 bg-slate-50 border border-slate-100 rounded-[2rem] focus:ring-4 focus:ring-red-500/10 focus:border-red-500 outline-none transition-all font-medium resize-none text-lg"
+                        placeholder="Describe symptoms or health observations for predictive risk mining..."
+                    ></textarea>
+                    
+                    <button 
+                        id="analyze-btn"
+                        class="w-full bg-slate-900 text-white py-5 rounded-2xl font-extrabold text-xl hover:bg-black shadow-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+                    >
+                        <i data-lucide="database" class="w-6 h-6 text-amber-400"></i>
+                        Mine Health Risks
+                    </button>
+                </div>
+
+                
+                <div id="result-container" class="hidden mt-10 p-8 bg-slate-50 rounded-[2rem] border border-slate-200 animate-in fade-in slide-in-from-bottom-4">
+                    <div class="flex flex-wrap justify-between items-start gap-6 mb-8">
+                        <div>
+                            <span id="risk-badge" class="px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest border"></span>
+                            <h3 class="text-3xl font-black text-slate-900 mt-4 tracking-tighter" id="risk-score-text"></h3>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Recommended Care</p>
+                            <p class="text-xl font-black text-blue-600 tracking-tight" id="specialist-text"></p>
+                        </div>
+                    </div>
+                    
+                    <div class="p-8 bg-white rounded-[2rem] border border-slate-100 mb-8 space-y-4 shadow-sm">
+                        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            <i data-lucide="message-square-text" class="w-4 h-4 text-red-500"></i>
+                            AI Risk Mining Interpretation
+                        </h4>
+                        <div id="analysis-text" class="text-slate-700 leading-relaxed font-medium text-sm space-y-4"></div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <h4 class="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-500"></i>
+                            Mitigation Strategy
+                        </h4>
+                        <div class="grid md:grid-cols-2 gap-4" id="suggestions-list"></div>
+                    </div>
+
+                    <button 
+                        id="save-risk-btn"
+                        class="mt-8 w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+                    >
+                        <i data-lucide="save" class="w-5 h-5"></i>
+                        Save to Risk Mining History
+                    </button>
+                </div>
+            </div>
+
+            
+            <!-- Digital Prescriptions Section -->
+            <div class="bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-100">
+                <div class="flex items-center gap-4 mb-10">
+                    <div class="bg-emerald-100 p-4 rounded-3xl">
+                        <i data-lucide="file-text" class="w-8 h-8 text-emerald-600"></i>
+                    </div>
+                    <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Digital Prescriptions</h2>
+                </div>
+
+                <div class="space-y-6">
+                    {% if prescriptions %}
+                        {% for p in prescriptions %}
+                        <div class="p-8 border border-slate-100 rounded-[2rem] bg-slate-50 hover:bg-white hover:border-emerald-600/20 hover:shadow-xl transition-all group">
+                            <div class="flex justify-between items-start mb-6">
+                                <div>
+                                    <h3 class="text-xl font-bold text-slate-900">Dr. {{ p.doctor.name }}</h3>
+                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">{{ p.date.strftime('%d %b %Y') }}</p>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="downloadPrescription('{{ p.id }}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Download PDF">
+                                        <i data-lucide="download" class="w-5 h-5"></i>
+                                    </button>
+                                    <i data-lucide="shield-check" class="w-6 h-6 text-emerald-500"></i>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-3 mb-6">
+                                {% for med in p.medicines_list %}
+                                <div class="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100">
+                                    <div>
+                                        <p class="text-sm font-bold text-slate-800">{{ med.name }}</p>
+                                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ med.dosage }}</p>
+                                    </div>
+                                    <span class="text-[10px] font-black text-emerald-600 uppercase bg-emerald-50 px-3 py-1 rounded-full">{{ med.duration }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            {% if p.notes %}
+                            <div class="p-4 bg-amber-50 rounded-xl border border-amber-100">
+                                <p class="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">Doctor's Advice</p>
+                                <p class="text-xs font-medium text-slate-600">{{ p.notes }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-12 bg-slate-50 rounded-[2.5rem] border border-dashed border-slate-200">
+                            <p class="text-slate-400 font-extrabold uppercase tracking-widest text-xs">No Digital Prescriptions</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-100">
+                <div class="flex items-center gap-4 mb-10">
+                    <div class="bg-blue-100 p-4 rounded-3xl">
+                        <i data-lucide="history" class="w-8 h-8 text-blue-600"></i>
+                    </div>
+                    <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Health Journey</h2>
+                </div>
+
+                <div class="relative space-y-10 pl-10 border-l-2 border-slate-100">
+                    {% if history %}
+                        {% for record in history %}
+                        <div class="relative group">
+                            <!-- Timeline Dot -->
+                            <div class="absolute -left-[51px] top-0 w-5 h-5 bg-white border-4 border-blue-600 rounded-full group-hover:scale-125 transition-all shadow-lg shadow-blue-500/20 z-10"></div>
+                            
+                            <div class="p-8 border border-slate-100 rounded-[2rem] bg-slate-50 hover:bg-white hover:border-blue-600/20 hover:shadow-xl transition-all">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 class="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{{ record.diagnosis or "AI Risk Analysis" }}</h3>
+                                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{{ record.date.strftime('%d %B %Y • %H:%M') }}</p>
+                                    </div>
+                                    {% if record.risk_level %}
+                                    <span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest 
+                                        {% if record.risk_level == 'low' %}bg-emerald-100 text-emerald-700
+                                        {% elif record.risk_level == 'medium' %}bg-amber-100 text-amber-700
+                                        {% else %}bg-red-100 text-red-700{% endif %}">
+                                        {{ record.risk_level }} Risk
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="space-y-4">
+                                    <p class="text-slate-500 font-medium leading-relaxed italic border-l-4 border-slate-200 pl-4 py-1">{{ record.notes or record.symptoms }}</p>
+                                    
+                                    {% if record.ai_suggestions %}
+                                    <div class="flex flex-wrap gap-2">
+                                        {% for sug in record.ai_suggestions.split(',')[:3] %}
+                                        <span class="text-[9px] font-bold bg-white text-slate-500 border border-slate-200 px-3 py-1 rounded-lg uppercase tracking-wider">{{ sug.strip() }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                                            <i data-lucide="zap" class="w-4 h-4 text-blue-600"></i>
+                                        </div>
+                                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Score: {{ record.risk_score or 'N/A' }}/100</span>
+                                    </div>
+                                    <button class="text-blue-600 text-sm font-black uppercase tracking-widest hover:underline flex items-center gap-1">
+                                        View Details <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-20 bg-slate-50 rounded-[2.5rem] border border-dashed border-slate-200">
+                            <i data-lucide="clipboard-list" class="w-16 h-16 mx-auto mb-6 text-slate-200"></i>
+                            <p class="text-slate-400 font-extrabold uppercase tracking-widest text-sm">No Medical Records Yet</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="space-y-10">
+            <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-100 sticky top-28">
+                <div class="flex items-center gap-4 mb-10">
+                    <div class="bg-emerald-100 p-4 rounded-3xl">
+                        <i data-lucide="stethoscope" class="w-8 h-8 text-emerald-600"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Available Doctors</h2>
+                        <p class="text-slate-500 font-medium text-[10px] uppercase tracking-widest mt-1">Book consultations with specialists</p>
+                    </div>
+                </div>
+
+                <div class="mb-8 relative">
+                    <input 
+                        type="text" 
+                        id="doctor-search"
+                        placeholder="Search by name or specialization..."
+                        class="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                    >
+                    <i data-lucide="search" class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                </div>
+
+                <div class="space-y-6" id="doctors-list">
+                    {% for doctor in doctors %}
+                    <div class="doctor-card p-6 border border-slate-100 rounded-3xl bg-slate-50 hover:bg-white hover:border-blue-600/20 hover:shadow-xl transition-all group" data-name="{{ doctor.name|lower }}" data-spec="{{ doctor.specialization|lower }}">
+                        <div class="flex items-center gap-4 mb-6">
+                            <div class="w-16 h-16 bg-slate-200 rounded-2xl flex items-center justify-center font-black text-slate-400 text-2xl uppercase">
+                                {{ doctor.name[0] }}
+                            </div>
+                            <div>
+                                <h4 class="font-black text-slate-900 group-hover:text-blue-600 transition-colors text-lg">Dr. {{ doctor.name }}</h4>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{{ doctor.specialization }}</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button 
+                                onclick="bookAppointment({{ doctor.id }}, 'General Consultation')"
+                                class="bg-white text-slate-900 border border-slate-200 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                            >
+                                <i data-lucide="calendar" class="w-3 h-3"></i> Book
+                            </button>
+                            <a 
+                                href="{{ url_for('consultation.chat', user_id=doctor.id) }}"
+                                class="bg-blue-600 text-white py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+                            >
+                                <i data-lucide="message-square" class="w-3 h-3"></i> Chat
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mt-10 p-6 bg-slate-900 rounded-[2rem] text-white">
+                    <p class="text-xs font-black text-blue-400 uppercase tracking-widest mb-2">Emergency Support</p>
+                    <p class="text-xl font-black mb-4 tracking-tight">Need immediate assistance?</p>
+                    <button class="w-full py-3 bg-red-600 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-red-700 transition-all">Call SOS Help</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    function setAI(model) {
+        document.getElementById('ai-model-risk').value = model;
+        document.querySelectorAll('.ai-btn').forEach(btn => btn.classList.remove('active'));
+        if (model === 'gemini-1.5-flash') document.getElementById('btn-flash-risk').classList.add('active');
+        else document.getElementById('btn-pro-risk').classList.add('active');
+    }
+
+    // Doctor Search
+    const searchInput = document.getElementById('doctor-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const cards = document.querySelectorAll('.doctor-card');
+            cards.forEach(card => {
+                const name = card.dataset.name;
+                const spec = card.dataset.spec;
+                if (name.includes(term) || spec.includes(term)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    // Initialize Chart
+    const chartData = {{ chart_data|safe }};
+    const ctx = document.getElementById('healthChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartData.map(d => d.date),
+            datasets: [{
+                label: 'Risk Score',
+                data: chartData.map(d => d.score),
+                borderColor: '#4f46e5',
+                backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 3,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#4f46e5',
+                pointBorderWidth: 2,
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    grid: { display: false }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    async function bookAppointment(doctorId, reason) {
+        try {
+            const response = await fetch('/consultation/book-appointment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ doctor_id: doctorId, reason: reason })
+            });
+            const data = await response.json();
+            alert(data.message);
+            window.location.reload();
+        } catch (err) {
+            alert('Booking failed');
+        }
+    }
+
+    function downloadPrescription(id) {
+        // Find the prescription element
+        const btn = event.currentTarget;
+        const card = btn.closest('.group');
+        
+        // Clone the card to modify it for PDF
+        const element = card.cloneNode(true);
+        
+        // Remove the download button from the clone
+        const downloadBtn = element.querySelector('button');
+        if (downloadBtn) downloadBtn.remove();
+        
+        // Add styling for PDF
+        element.style.padding = '40px';
+        element.style.backgroundColor = 'white';
+        element.style.borderRadius = '0px';
+        element.style.boxShadow = 'none';
+        
+        // Add a header for the PDF
+        const header = document.createElement('div');
+        header.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="background-color: #2563eb; padding: 8px; border-radius: 12px;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    </div>
+                    <span style="font-size: 24px; font-weight: 800; color: #0f172a;">MedMining AI</span>
+                </div>
+                <div style="text-align: right;">
+                    <p style="font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">Official Digital Prescription</p>
+                    <p style="font-size: 14px; font-weight: 700; color: #1e293b;">Verified Medical Document</p>
+                </div>
+            </div>
+        `;
+        element.prepend(header);
+        
+        // Add a footer
+        const footer = document.createElement('div');
+        footer.innerHTML = `
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px dashed #e2e8f0; text-align: center;">
+                <p style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">This document is digitally generated by MedMining AI on behalf of Dr. ${element.querySelector('h3').innerText.replace('Dr. ', '')}</p>
+            </div>
+        `;
+        element.appendChild(footer);
+
+        const opt = {
+            margin: 0.5,
+            filename: `Prescription_${id}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        html2pdf().from(element).set(opt).save();
+    }
+
+    document.getElementById('analyze-btn').addEventListener('click', async () => {
+        const symptoms = document.getElementById('symptoms-input').value;
+        if (!symptoms) return;
+        
+        const btn = document.getElementById('analyze-btn');
+        btn.innerHTML = '<i class="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></i> Analyzing...';
+        btn.disabled = true;
+
+        try {
+            const response = await fetch('/ai/analyze-risk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    symptoms: symptoms.split(','),
+                    history: [], // Add history here
+                    ai_model: document.getElementById('ai-model-risk').value
+                })
+            });
+            const data = await response.json();
+            
+            document.getElementById('result-container').classList.remove('hidden');
+            
+            // Show Simulation Mode Warning if needed
+            if (data.is_mock) {
+                const mockWarning = document.createElement('div');
+                mockWarning.className = 'mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3 text-amber-700 text-xs font-bold';
+                mockWarning.innerHTML = `
+                    <i data-lucide="info" class="w-4 h-4"></i>
+                    <span>MedMining AI: This is a <strong>Simulated Analysis</strong> for presentation purposes. (API Key not configured)</span>
+                `;
+                document.getElementById('result-container').prepend(mockWarning);
+            }
+
+            document.getElementById('risk-score-text').innerText = `Risk Score: ${data.riskScore}/100`;
+            document.getElementById('specialist-text').innerText = data.recommendedSpecialist;
+            document.getElementById('analysis-text').innerHTML = data.analysis.split('\n\n').map(p => `<p>${p}</p>`).join('');
+            
+            const badge = document.getElementById('risk-badge');
+            badge.innerText = `${data.riskLevel} Risk`;
+            badge.className = `px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest border ${
+                data.riskLevel === 'high' || data.riskLevel === 'critical' 
+                ? 'bg-red-50 text-red-600 border-red-100' 
+                : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+            }`;
+
+            const suggestions = document.getElementById('suggestions-list');
+            suggestions.innerHTML = data.suggestions.map(s => `
+                <div class="p-6 bg-white border border-slate-100 rounded-[1.5rem] flex items-start gap-4 shadow-sm hover:border-red-200 transition-all">
+                    <div class="p-2 bg-red-50 rounded-lg">
+                        <i data-lucide="shield-check" class="w-4 h-4 text-red-500 shrink-0"></i>
+                    </div>
+                    <p class="text-xs font-bold text-slate-600 leading-relaxed">${s}</p>
+                </div>
+            `).join('');
+            
+            lucide.createIcons();
+            document.getElementById('result-container').scrollIntoView({ behavior: 'smooth' });
+
+            // Store current analysis for saving
+            window.currentAnalysis = data;
+            window.currentSymptoms = symptoms;
+        } catch (err) {
+            alert('Analysis failed');
+        } finally {
+            btn.innerHTML = '<i data-lucide="sparkles" class="w-6 h-6 text-amber-400"></i> Analyze Health Risks';
+            btn.disabled = false;
+            lucide.createIcons();
+        }
+    });
+
+    document.getElementById('save-risk-btn').addEventListener('click', async () => {
+        if (!window.currentAnalysis) return;
+        
+        const btn = document.getElementById('save-risk-btn');
+        btn.disabled = true;
+        btn.innerText = 'Saving...';
+
+        try {
+            const response = await fetch('/patient/save-record', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    symptoms: window.currentSymptoms,
+                    diagnosis: `Risk Analysis: ${window.currentAnalysis.riskLevel} Risk`,
+                    notes: window.currentAnalysis.analysis,
+                    risk_score: window.currentAnalysis.riskScore,
+                    risk_level: window.currentAnalysis.riskLevel,
+                    ai_suggestions: window.currentAnalysis.suggestions.join(', '),
+                    is_medicine_report: false
+                })
+            });
+            const data = await response.json();
+            alert(data.message);
+            window.location.reload();
+        } catch (err) {
+            alert('Failed to save record');
+            btn.disabled = false;
+            btn.innerText = 'Save to Medical History';
+        }
+    });
+</script>
+    <style>
+        .ai-btn.active {
+            background: #f8fafc;
+            border-color: #2563eb;
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.1);
+        }
+    </style>
+{% endblock %}
