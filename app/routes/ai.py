@@ -8,26 +8,35 @@ import io
 
 ai_bp = Blueprint('ai', __name__)
 
-def configure_genai():
+def get_genai_client():
+    """Return a configured genai.Client or None when the key is missing/placeholder."""
     api_key = os.getenv('GEMINI_API_KEY')
     if not api_key or api_key == 'YOUR_GEMINI_API_KEY_HERE':
-        return False
+        return None
     try:
-        genai.configure(api_key=api_key)
-        return True
-    except:
-        return False
+        return genai.Client(api_key=api_key)
+    except Exception:
+        return None
 
-def resolve_ai_model_name(requested_name: str | None, default: str = 'gemini-1.5-flash') -> tuple[str, str]:
+def resolve_ai_model_name(requested_name: str | None, default: str = 'gemini-2.5-flash') -> tuple[str, str]:
     """
     Returns (provider_model_name_for_gemini_sdk, label_name_for_ui).
     We accept 'chatgpt' as a UI choice; unless OpenAI is integrated, it maps to Gemini.
+    Deprecated 1.5 model names are mapped to their 2.5 equivalents.
     """
     name = (requested_name or default).strip()
     lowered = name.lower()
     if lowered in {'chatgpt', 'gpt', 'gpt-4', 'gpt-4o', 'openai'}:
-        return ('gemini-1.5-pro', 'chatgpt')
-    return (name, name)
+        return ('gemini-2.5-flash', 'chatgpt')
+    # Map deprecated 1.5 model names to current equivalents
+    _MODEL_ALIASES = {
+        'gemini-1.5-flash': 'gemini-2.5-flash',
+        'gemini-1.5-pro': 'gemini-2.5-pro',
+        'gemini-25-flash': 'gemini-2.5-flash',
+        'gemini-25-pro': 'gemini-2.5-pro',
+    }
+    resolved = _MODEL_ALIASES.get(lowered, name)
+    return (resolved, resolved)
 
 def _safe_snip(text: str, limit: int = 1200) -> str:
     text = (text or '').strip()
@@ -280,16 +289,15 @@ def get_mock_lab_analysis():
 def analyze_risk():
     data = request.get_json()
     symptoms = data.get('symptoms', [])
-    sdk_model_name, label_model_name = resolve_ai_model_name(data.get('ai_model'), default='gemini-1.5-flash')
+    sdk_model_name, label_model_name = resolve_ai_model_name(data.get('ai_model'), default='gemini-2.5-flash')
     
-    if not configure_genai():
+    client = get_genai_client()
+    if not client:
         mock_res = get_mock_risk_analysis(symptoms)
         mock_res['analysis'] = f"**[Simulation Mode - {label_model_name.upper()}]**\n\n" + mock_res['analysis']
         return jsonify(mock_res)
     
     try:
-        model = genai.GenerativeModel(sdk_model_name)
-        
         prompt = f"""You are 'MedMining AI', an advanced Predictive Risk Mining engine.
         Patient Symptoms: {', '.join(symptoms)}
         Patient History: None provided
@@ -305,7 +313,7 @@ def analyze_risk():
           "suggestions": ["list of detailed mitigation strategies"]
         }}"""
 
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(model=sdk_model_name, contents=prompt)
         json_str = response.text.replace('```json', '').replace('```', '').strip()
         return jsonify(json.loads(json_str))
     except Exception as e:
@@ -315,9 +323,10 @@ def analyze_risk():
 @ai_bp.route('/analyze-medicine', methods=['POST'])
 @login_required
 def analyze_medicine():
-    sdk_model_name, label_model_name = resolve_ai_model_name(request.form.get('ai_model'), default='gemini-1.5-flash')
+    sdk_model_name, label_model_name = resolve_ai_model_name(request.form.get('ai_model'), default='gemini-2.5-flash')
     
-    if not configure_genai():
+    client = get_genai_client()
+    if not client:
         if 'medicineImage' not in request.files:
             return jsonify({"error": "No file uploaded"}), 400
         file = request.files['medicineImage']
@@ -333,22 +342,6 @@ def analyze_medicine():
             
         file = request.files['medicineImage']
         filename = file.filename.lower()
-        
-        model = genai.GenerativeModel(sdk_model_name)
-        
-        # Handle PDF vs Image (live OCR)
-        content_parts = []
-        if filename.endswith('.pdf'):
-            file_bytes = file.read()
-            images, note = pdf_to_pil_images(file_bytes, max_pages=3, dpi=200)
-            if not images:
-                raise ValueError(note)
-            # Put prompt first, then images for OCR/vision.
-            # Gemini can extract text from the rasterized pages.
-            content_parts = [prompt] + images
-        else:
-            img = Image.open(io.BytesIO(file.read()))
-            content_parts = [prompt, img]
 
         prompt = """You are 'MedMining AI', an elite Medical Risk Mining specialist. 
         Analyze the provided image or document (medicine bottle, blister pack, or handwritten prescription) with extreme accuracy.
@@ -384,8 +377,21 @@ def analyze_medicine():
           },
           "raw_ocr": "full text extracted for reference"
         }"""
+        
+        # Handle PDF vs Image (live OCR)
+        content_parts = []
+        if filename.endswith('.pdf'):
+            file_bytes = file.read()
+            images, note = pdf_to_pil_images(file_bytes, max_pages=3, dpi=200)
+            if not images:
+                raise ValueError(note)
+            # Put prompt first, then images for OCR/vision.
+            content_parts = [prompt] + images
+        else:
+            img = Image.open(io.BytesIO(file.read()))
+            content_parts = [prompt, img]
 
-        response = model.generate_content(content_parts)
+        response = client.models.generate_content(model=sdk_model_name, contents=content_parts)
 
         return jsonify(parse_json_from_gemini_text(response.text))
     except Exception as e:
@@ -395,9 +401,10 @@ def analyze_medicine():
 @ai_bp.route('/analyze-lab-report', methods=['POST'])
 @login_required
 def analyze_lab_report():
-    sdk_model_name, label_model_name = resolve_ai_model_name(request.form.get('ai_model'), default='gemini-1.5-flash')
+    sdk_model_name, label_model_name = resolve_ai_model_name(request.form.get('ai_model'), default='gemini-2.5-flash')
 
-    if not configure_genai():
+    client = get_genai_client()
+    if not client:
         if 'labReport' not in request.files:
             return jsonify({"error": "No file uploaded"}), 400
         file = request.files['labReport']
@@ -413,8 +420,6 @@ def analyze_lab_report():
             
         file = request.files['labReport']
         filename = file.filename.lower()
-        
-        model = genai.GenerativeModel(sdk_model_name)
 
         prompt = """You are 'MedMining AI', a specialized Clinical Risk Analyst. 
         Analyze the provided lab report image or PDF with clinical precision.
@@ -454,10 +459,11 @@ def analyze_lab_report():
             if not images:
                 raise ValueError(note)
             content_parts = [prompt] + images
-            response = model.generate_content(content_parts)
         else:
             img = Image.open(io.BytesIO(file.read()))
-            response = model.generate_content([prompt, img])
+            content_parts = [prompt, img]
+
+        response = client.models.generate_content(model=sdk_model_name, contents=content_parts)
 
         return jsonify(parse_json_from_gemini_text(response.text))
     except Exception as e:
@@ -471,12 +477,13 @@ def symptom_chat():
         data = request.get_json()
         user_message = (data.get('message') or '').strip()
         chat_history = data.get('history', [])
-        sdk_model_name, label_model_name = resolve_ai_model_name(data.get('ai_model'), default='gemini-1.5-flash')
+        sdk_model_name, label_model_name = resolve_ai_model_name(data.get('ai_model'), default='gemini-2.5-flash')
 
         if not user_message:
             return jsonify({"error": "Message is required"}), 400
 
-        if not configure_genai():
+        client = get_genai_client()
+        if not client:
             msg_lower = user_message.lower()
             urgent = any(k in msg_lower for k in [
                 "chest pain", "pressure in chest", "shortness of breath", "difficulty breathing",
@@ -499,11 +506,11 @@ def symptom_chat():
                 "How long has this been happening?",
                 "How severe is it (0–10)?",
                 "Do you have fever, dizziness, or shortness of breath?",
-                "Any known conditions or medicines you’re taking?"
+                "Any known conditions or medicines you're taking?"
             ]
             response = (
                 f"**[Simulation Mode — {label_model_name.upper()}]**\n\n"
-                f"Here’s a quick triage-style summary based on what you wrote:\n"
+                f"Here's a quick triage-style summary based on what you wrote:\n"
                 f"- **Possible concern areas**: depends on duration/severity and associated symptoms.\n"
                 f"- **Recommended specialist**: **{specialist}**\n\n"
                 + ("**Urgent warning**: Your symptoms could be serious. Please seek **emergency care immediately** or call your local emergency number.\n\n" if urgent else "")
@@ -513,8 +520,6 @@ def symptom_chat():
             )
             return jsonify({"response": response, "is_mock": True, "ai_model": label_model_name})
 
-        model = genai.GenerativeModel(sdk_model_name)
-        
         # System prompt for the symptom checker
         system_prompt = """You are 'MedMining AI Assistant', a professional medical triage specialist. 
         Your goal is to help patients understand their symptoms and provide preliminary advice.
@@ -527,23 +532,20 @@ def symptom_chat():
         5. Suggest a possible specialist the patient might need to see.
         6. Keep responses concise and structured using bullet points where necessary."""
 
-        # Refactored to use the stateful ChatSession from the google-genai SDK.
-        # We build the conversation history from the client's list of messages.
-        sdk_history = []
-        # The client sends a flat list of messages; we assume user/model alternation.
-        for i, message in enumerate(chat_history[-6:]): # Limit context to last 3 turns
+        # Build conversation history for the API call
+        contents = []
+        for i, message in enumerate(chat_history[-6:]):
             role = 'user' if i % 2 == 0 else 'model'
-            sdk_history.append({'role': role, 'parts': [message]})
+            contents.append(genai.types.Content(role=role, parts=[genai.types.Part.from_text(text=message)]))
 
-        chat = model.start_chat(history=sdk_history)
-
-        # For the first turn (no history), we must provide the system prompt.
-        # For subsequent turns, the history is already in the chat session.
+        # For the first turn, prepend the system prompt to the user message.
         message_to_send = user_message
         if not chat_history:
             message_to_send = f"{system_prompt}\n\nPatient: {user_message}"
 
-        response = chat.send_message(message_to_send)
+        contents.append(genai.types.Content(role='user', parts=[genai.types.Part.from_text(text=message_to_send)]))
+
+        response = client.models.generate_content(model=sdk_model_name, contents=contents)
         return jsonify({"response": response.text, "ai_model": label_model_name})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
