@@ -25,27 +25,7 @@
         <div class="grid lg:grid-cols-12 gap-12">
             <!-- Left Column: Upload -->
             <div class="lg:col-span-4 space-y-8">
-                <!-- AI Model Selector -->
-                <div class="space-y-3">
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                        <i data-lucide="cpu" class="w-3 h-3"></i> Select AI Intelligence
-                    </label>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button type="button" onclick="setAI('gemini-1.5-flash')" id="btn-flash" class="ai-btn active p-3 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all flex flex-col items-center gap-1">
-                            <span class="text-blue-600">Gemini Flash</span>
-                            <span class="text-[8px] opacity-50">Fast</span>
-                        </button>
-                        <button type="button" onclick="setAI('gemini-1.5-pro')" id="btn-pro" class="ai-btn p-3 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all flex flex-col items-center gap-1">
-                            <span class="text-indigo-600">Gemini Pro</span>
-                            <span class="text-[8px] opacity-50">Deep</span>
-                        </button>
-                        <button type="button" onclick="setAI('chatgpt')" id="btn-chatgpt" class="ai-btn p-3 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all flex flex-col items-center gap-1">
-                            <span class="text-slate-900">ChatGPT</span>
-                            <span class="text-[8px] opacity-50">OpenAI</span>
-                        </button>
-                    </div>
-                    <input type="hidden" id="ai-model" value="gemini-1.5-flash">
-                </div>
+
 
                 <div class="relative group h-80 border-4 border-dashed border-slate-100 rounded-[2.5rem] bg-slate-50 flex flex-col items-center justify-center p-10 cursor-pointer hover:bg-white hover:border-blue-600/30 hover:shadow-2xl transition-all overflow-hidden">
                     <input type="file" id="medicine-image" class="absolute inset-0 opacity-0 cursor-pointer z-10" accept="image/*,.pdf">
@@ -157,13 +137,7 @@
 
 {% block scripts %}
 <script>
-    function setAI(model) {
-        document.getElementById('ai-model').value = model;
-        document.querySelectorAll('.ai-btn').forEach(btn => btn.classList.remove('active'));
-        if (model === 'gemini-1.5-flash') document.getElementById('btn-flash').classList.add('active');
-        else if (model === 'gemini-1.5-pro') document.getElementById('btn-pro').classList.add('active');
-        else document.getElementById('btn-chatgpt').classList.add('active');
-    }
+
 
     const imageInput = document.getElementById('medicine-image');
     const preview = document.getElementById('image-preview');
@@ -208,7 +182,7 @@
 
         const formData = new FormData();
         formData.append('medicineImage', file);
-        formData.append('ai_model', document.getElementById('ai-model').value);
+
 
         analyzeBtn.innerHTML = '<i class="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></i> Risk Mining...';
         analyzeBtn.disabled = true;

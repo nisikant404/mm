@@ -289,7 +289,7 @@ def get_mock_lab_analysis():
 def analyze_risk():
     data = request.get_json()
     symptoms = data.get('symptoms', [])
-    sdk_model_name, label_model_name = resolve_ai_model_name(data.get('ai_model'), default='gemini-2.5-flash')
+    sdk_model_name, label_model_name = resolve_ai_model_name(None, default='gemini-2.5-flash')
     
     client = get_genai_client()
     if not client:
@@ -323,7 +323,7 @@ def analyze_risk():
 @ai_bp.route('/analyze-medicine', methods=['POST'])
 @login_required
 def analyze_medicine():
-    sdk_model_name, label_model_name = resolve_ai_model_name(request.form.get('ai_model'), default='gemini-2.5-flash')
+    sdk_model_name, label_model_name = resolve_ai_model_name(None, default='gemini-2.5-flash')
     
     client = get_genai_client()
     if not client:
@@ -401,7 +401,7 @@ def analyze_medicine():
 @ai_bp.route('/analyze-lab-report', methods=['POST'])
 @login_required
 def analyze_lab_report():
-    sdk_model_name, label_model_name = resolve_ai_model_name(request.form.get('ai_model'), default='gemini-2.5-flash')
+    sdk_model_name, label_model_name = resolve_ai_model_name(None, default='gemini-2.5-flash')
 
     client = get_genai_client()
     if not client:
@@ -477,7 +477,7 @@ def symptom_chat():
         data = request.get_json()
         user_message = (data.get('message') or '').strip()
         chat_history = data.get('history', [])
-        sdk_model_name, label_model_name = resolve_ai_model_name(data.get('ai_model'), default='gemini-2.5-flash')
+        sdk_model_name, label_model_name = resolve_ai_model_name(None, default='gemini-2.5-flash')
 
         if not user_message:
             return jsonify({"error": "Message is required"}), 400
