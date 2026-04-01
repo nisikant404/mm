@@ -2,14 +2,27 @@
 
 **Core Value:** A unified healthcare platform bridging patients and doctors with AI-assisted insights, smart OCR, and real-time communication.
 
-## Current Milestone: v1.0 OCR Improvements
+## Current State
 
-**Goal:** Remove manual model selection from the OCR interface and automate the saving of scanned medicines and prescriptions.
+**Shipped Version:** v1.1 AI Symptom Checker
+
+The platform includes an intelligent conversational symptom checker that diagnoses probable issues and dynamically lists relevant doctors (with real-time experience stats and functional booking buttons).
+
+## Next Milestone Goals
+
+*[Run `/gsd-new-milestone` to define goals for the next iteration.]*
+
+<details>
+<summary>Previous Milestone: v1.1 AI Symptom Checker</summary>
+
+**Goal:** Build an intelligent conversational symptom checker that diagnoses probable issues and dynamically lists relevant doctors (with experience and booking capabilities) on the side.
 
 **Target features:**
-- Remove AI model/agent selectors from OCR UIs (medicine, prescription, lab report)
-- Default to the configured primary model (or simulation) under the hood
-- Implement automatic saving of OCR results as medical records
+- Interactive AI chatbot for capturing symptoms and diagnosing probable issues
+- Dynamic side-panel displaying doctors whose specializations match the AI diagnosis
+- Display of doctor experience and credentials in the side-panel
+- Inline appointment booking mechanism (ticket creation) from the doctor list
+</details>
 
 ## Requirements
 
@@ -23,17 +36,24 @@
 - ✓ Real-time consultation (WebRTC video call)
 - ✓ Appointment scheduling
 
+- ✓ **OCR-01**: Remove AI model selection dropdowns/options from all frontend analyzer pages (medicine, lab).
+- ✓ **OCR-02**: Ensure backend AI routes automatically resolve and use the default AI model without requiring frontend parameter.
+- ✓ **SAVE-01**: Automatically save successfully scanned medicine analysis results to the user's Medical History. 
+- ✓ **SAVE-02**: Automatically save successfully scanned prescription analysis results to the user's Medical History.
+- ✓ **CHK-01**: Symptom checker chatbot interface captures symptoms effectively.
+- ✓ **CHK-02**: AI determines probable medical issue/specialization domain.
+- ✓ **DOC-01**: Associated domain doctors render dynamically on a side-list.
+- ✓ **DOC-02**: Side-list displays doctor experience and relevant credentials.
+- ✓ **APT-01**: Side-list includes working "Book Appointment" (ticket) buttons for each doctor.
+
 ### Active
 
-- [ ] **OCR-01**: Remove AI model selection dropdowns/options from all frontend analyzer pages (medicine, lab).
-- [ ] **OCR-02**: Ensure backend AI routes automatically resolve and use the default AI model without requiring frontend parameter.
-- [ ] **SAVE-01**: Automatically save successfully scanned medicine analysis results to the user's Medical History. 
-- [ ] **SAVE-02**: Automatically save successfully scanned prescription analysis results to the user's Medical History.
+- [ ] (Run `/gsd-new-milestone`)
 
 ### Out of Scope
 
-- Modifying the underlying AI prompt structure (out of scope for this milestone)
-- Changing the Gemini model being used (just removing the UI selection)
+- Processing payments for appointments in this milestone
+- Real-time scheduling slot selection (basic ticket raising is sufficient)
 
 ## Key Decisions
 
@@ -59,4 +79,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 after initialization*
+*Last updated: 2026-04-02 after starting v1.1 milestone*
