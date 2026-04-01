@@ -43,6 +43,21 @@
                     </div>
                 </div>
 
+                <div class="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl shadow-sm mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center">
+                            <i data-lucide="database" class="w-4 h-4 text-emerald-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-slate-800">Auto-Save Record</p>
+                            <p class="text-[9px] font-black uppercase tracking-widest text-slate-400">Store in Medical History</p>
+                        </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="save-toggle" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                </div>
                 <button id="analyze-btn" disabled class="w-full py-5 bg-emerald-600 text-white rounded-2xl font-extrabold text-xl hover:bg-emerald-700 shadow-2xl shadow-emerald-500/20 transition-all active:scale-[0.98] disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none flex items-center justify-center gap-3">
                     <i data-lucide="zap" class="w-6 h-6 text-amber-400"></i>
                     Mine Health Risks
@@ -105,13 +120,6 @@
                         </div>
                     </div>
 
-                    <button 
-                        id="save-report-btn"
-                        class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-black shadow-2xl transition-all flex items-center justify-center gap-2"
-                    >
-                        <i data-lucide="database" class="w-6 h-6"></i>
-                        Store in Health History
-                    </button>
                 </div>
             </div>
         </div>
@@ -174,6 +182,7 @@
 
         const formData = new FormData();
         formData.append('labReport', file);
+        formData.append('save_record', document.getElementById('save-toggle').checked);
 
 
         analyzeBtn.innerHTML = '<i class="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></i> Mining Data...';
@@ -261,6 +270,14 @@
                 </li>
             `).join('');
 
+            if (data.saved) {
+                const toast = document.createElement('div');
+                toast.className = 'fixed bottom-5 right-5 bg-emerald-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm animate-in fade-in slide-in-from-bottom-5 z-50';
+                toast.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5"></i> <span>Analysis securely auto-saved!</span>';
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 4000);
+            }
+            
             lucide.createIcons();
             window.currentLabData = data;
         } catch (err) {
@@ -273,38 +290,6 @@
         }
     });
 
-    document.getElementById('save-report-btn').addEventListener('click', async () => {
-        if (!window.currentLabData) return;
-        
-        const btn = document.getElementById('save-report-btn');
-        btn.disabled = true;
-        btn.innerText = 'Saving to History...';
 
-        const data = window.currentLabData;
-        const payload = {
-            symptoms: `Lab Risk Mining: ${data.report_type}`,
-            diagnosis: data.detailed_interpretation.substring(0, 200) + '...',
-            notes: `Primary Concerns: ${data.risk_assessment.primary_concerns.join(', ')}`,
-            ai_suggestions: data.risk_assessment.action_plan.join(', '),
-            risk_score: data.findings.some(f => f.status !== 'normal') ? 75 : 15,
-            risk_level: data.risk_assessment.level,
-            is_medicine_report: false
-        };
-
-        try {
-            const response = await fetch('/patient/save-record', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const res = await response.json();
-            alert(res.message);
-            window.location.href = '/patient/dashboard';
-        } catch (err) {
-            alert('Failed to save record');
-            btn.disabled = false;
-            btn.innerText = 'Store in Health History';
-        }
-    });
 </script>
 {% endblock %}

@@ -58,11 +58,26 @@
                         placeholder="Describe symptoms or health observations for predictive risk mining..."
                     ></textarea>
                     
+                <div class="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl shadow-sm mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center">
+                            <i data-lucide="database" class="w-4 h-4 text-emerald-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-slate-800">Auto-Save Record</p>
+                            <p class="text-[9px] font-black uppercase tracking-widest text-slate-400">Store in Medical History</p>
+                        </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="save-toggle-risk" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                </div>
                     <button 
                         id="analyze-btn"
                         class="w-full bg-slate-900 text-white py-5 rounded-2xl font-extrabold text-xl hover:bg-black shadow-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-3"
                     >
-                        <i data-lucide="database" class="w-6 h-6 text-amber-400"></i>
+                        <i data-lucide="sparkles" class="w-6 h-6 text-amber-400"></i>
                         Mine Health Risks
                     </button>
                 </div>
@@ -96,13 +111,6 @@
                         <div class="grid md:grid-cols-2 gap-4" id="suggestions-list"></div>
                     </div>
 
-                    <button 
-                        id="save-risk-btn"
-                        class="mt-8 w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
-                    >
-                        <i data-lucide="save" class="w-5 h-5"></i>
-                        Save to Risk Mining History
-                    </button>
                 </div>
             </div>
 
@@ -437,7 +445,8 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     symptoms: symptoms.split(','),
-                    history: [] // Add history here
+                    history: [], // Add history here
+                    save_record: document.getElementById('save-toggle-risk').checked
                 })
             });
             const data = await response.json();
@@ -477,6 +486,14 @@
                 </div>
             `).join('');
             
+            if (data.saved) {
+                const toast = document.createElement('div');
+                toast.className = 'fixed bottom-5 right-5 bg-emerald-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 font-bold text-sm animate-in fade-in slide-in-from-bottom-5 z-50';
+                toast.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5"></i> <span>Analysis securely auto-saved!</span>';
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 4000);
+            }
+
             lucide.createIcons();
             document.getElementById('result-container').scrollIntoView({ behavior: 'smooth' });
 
@@ -492,36 +509,7 @@
         }
     });
 
-    document.getElementById('save-risk-btn').addEventListener('click', async () => {
-        if (!window.currentAnalysis) return;
-        
-        const btn = document.getElementById('save-risk-btn');
-        btn.disabled = true;
-        btn.innerText = 'Saving...';
 
-        try {
-            const response = await fetch('/patient/save-record', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    symptoms: window.currentSymptoms,
-                    diagnosis: `Risk Analysis: ${window.currentAnalysis.riskLevel} Risk`,
-                    notes: window.currentAnalysis.analysis,
-                    risk_score: window.currentAnalysis.riskScore,
-                    risk_level: window.currentAnalysis.riskLevel,
-                    ai_suggestions: window.currentAnalysis.suggestions.join(', '),
-                    is_medicine_report: false
-                })
-            });
-            const data = await response.json();
-            alert(data.message);
-            window.location.reload();
-        } catch (err) {
-            alert('Failed to save record');
-            btn.disabled = false;
-            btn.innerText = 'Save to Medical History';
-        }
-    });
 </script>
     <style>
         .ai-btn.active {

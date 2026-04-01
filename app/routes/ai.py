@@ -1,5 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required, current_user
+from app import db
+from app.models.models import MedicalRecord
 import google.genai as genai
 import os
 import json
@@ -212,6 +214,53 @@ def parse_json_from_gemini_text(text: str) -> dict:
             return json.loads(cleaned[start:end + 1])
         raise
 
+def auto_save_record(result: dict, kind: str, symptoms_val: str = "") -> bool:
+    try:
+        if kind == "risk":
+            record = MedicalRecord(
+                patient_id=current_user.id,
+                symptoms=symptoms_val,
+                diagnosis=f"Risk Analysis: {result.get('riskLevel', 'unknown')} Risk",
+                notes=result.get('analysis', ''),
+                risk_score=result.get('riskScore'),
+                risk_level=result.get('riskLevel'),
+                ai_suggestions=", ".join(result.get('suggestions', [])),
+                is_medicine_report=False
+            )
+        elif kind == "medicine":
+            record = MedicalRecord(
+                patient_id=current_user.id,
+                symptoms="Medicine Analysis",
+                diagnosis=result.get('name', ''),
+                notes=result.get('detailed_analysis', ''),
+                risk_score=50 if result.get('risk_profile', {}).get('severity') == 'medium' else (80 if result.get('risk_profile', {}).get('severity') == 'high' else 20),
+                risk_level=result.get('risk_profile', {}).get('severity', 'low'),
+                ai_suggestions=", ".join(result.get('risk_profile', {}).get('precautions', []) + result.get('risk_profile', {}).get('warnings', [])),
+                is_medicine_report=True
+            )
+        elif kind == "lab":
+            detailed_interp = result.get('detailed_interpretation', '')
+            record = MedicalRecord(
+                patient_id=current_user.id,
+                symptoms=f"Lab Risk Mining: {result.get('report_type', '')}",
+                diagnosis=detailed_interp[:200] + '...' if detailed_interp else "",
+                notes=f"Primary Concerns: {', '.join(result.get('risk_assessment', {}).get('primary_concerns', []))}",
+                risk_score=75 if any(f.get('status') != 'normal' for f in result.get('findings', [])) else 15,
+                risk_level=result.get('risk_assessment', {}).get('level', 'low'),
+                ai_suggestions=", ".join(result.get('risk_assessment', {}).get('action_plan', [])),
+                is_medicine_report=False
+            )
+        else:
+            return False
+            
+        db.session.add(record)
+        db.session.commit()
+        return True
+    except Exception as e:
+        db.session.rollback()
+        print(f"DB auto-save Error: {str(e)}")
+        return False
+
 def get_mock_risk_analysis(symptoms):
     return {
         "riskScore": 72,
@@ -295,6 +344,9 @@ def analyze_risk():
     if not client:
         mock_res = get_mock_risk_analysis(symptoms)
         mock_res['analysis'] = f"**[Simulation Mode - {label_model_name.upper()}]**\n\n" + mock_res['analysis']
+        if data.get('save_record'):
+            if auto_save_record(mock_res, 'risk', ",".join(symptoms)):
+                mock_res['saved'] = True
         return jsonify(mock_res)
     
     try:
@@ -315,7 +367,11 @@ def analyze_risk():
 
         response = client.models.generate_content(model=sdk_model_name, contents=prompt)
         json_str = response.text.replace('```json', '').replace('```', '').strip()
-        return jsonify(json.loads(json_str))
+        result = json.loads(json_str)
+        if data.get('save_record'):
+            if auto_save_record(result, 'risk', ",".join(symptoms)):
+                result['saved'] = True
+        return jsonify(result)
     except Exception as e:
         print(f"Risk Analysis Error: {str(e)}")
         return jsonify({"error": str(e)}), 500
@@ -334,6 +390,9 @@ def analyze_medicine():
         file_bytes = file.read()
         res = simulated_medicine_response(filename, file_bytes)
         res['detailed_analysis'] = f"**[Simulation Mode - {label_model_name.upper()}]**\n\n" + res['detailed_analysis']
+        if request.form.get('save_record') == 'true':
+            if auto_save_record(res, 'medicine'):
+                res['saved'] = True
         return jsonify(res)
     
     try:
@@ -392,8 +451,11 @@ def analyze_medicine():
             content_parts = [prompt, img]
 
         response = client.models.generate_content(model=sdk_model_name, contents=content_parts)
-
-        return jsonify(parse_json_from_gemini_text(response.text))
+        result = parse_json_from_gemini_text(response.text)
+        if request.form.get('save_record') == 'true':
+            if auto_save_record(result, 'medicine'):
+                result['saved'] = True
+        return jsonify(result)
     except Exception as e:
         print(f"AI Vision Error: {str(e)}")
         return jsonify({"error": str(e)}), 500
@@ -412,6 +474,9 @@ def analyze_lab_report():
         file_bytes = file.read()
         res = simulated_lab_response(filename, file_bytes)
         res['detailed_interpretation'] = f"**[Simulation Mode - {label_model_name.upper()}]**\n\n" + res['detailed_interpretation']
+        if request.form.get('save_record') == 'true':
+            if auto_save_record(res, 'lab'):
+                res['saved'] = True
         return jsonify(res)
     
     try:
@@ -464,8 +529,11 @@ def analyze_lab_report():
             content_parts = [prompt, img]
 
         response = client.models.generate_content(model=sdk_model_name, contents=content_parts)
-
-        return jsonify(parse_json_from_gemini_text(response.text))
+        result = parse_json_from_gemini_text(response.text)
+        if request.form.get('save_record') == 'true':
+            if auto_save_record(result, 'lab'):
+                result['saved'] = True
+        return jsonify(result)
     except Exception as e:
         print(f"Lab Report AI Error: {str(e)}")
         return jsonify({"error": str(e)}), 500
