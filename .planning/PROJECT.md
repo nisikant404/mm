@@ -8,9 +8,14 @@
 
 The platform includes an intelligent conversational symptom checker that diagnoses probable issues and dynamically lists relevant doctors (with real-time experience stats and functional booking buttons).
 
-## Next Milestone Goals
+## Current Milestone: v1.2 Symptom Checker & Doctor Listing Fixes
 
-*[Run `/gsd-new-milestone` to define goals for the next iteration.]*
+**Goal:** Fix the symptom checker issues and ensure doctors correctly populate and display in the interface.
+
+**Target features:**
+- Debug and resolve functional issues with the AI symptom checker chat flow
+- Fix the bug preventing doctors from showing up in the UI based on the diagnosis
+- Ensure the dynamic routing of the recommended specializations displays the correct doctor profiles
 
 <details>
 <summary>Previous Milestone: v1.1 AI Symptom Checker</summary>
