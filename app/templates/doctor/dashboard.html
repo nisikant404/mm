@@ -2,298 +2,507 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-6 py-12">
+
+    <!-- Header -->
     <div class="flex justify-between items-center mb-12">
         <div>
             <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">Doctor Workspace</h1>
-            <p class="text-slate-500 mt-2 font-medium">Manage your consultations and health records</p>
+            <p class="text-slate-500 mt-2 font-medium">Review patient tickets and manage consultations</p>
         </div>
-        <div class="bg-blue-50 px-6 py-4 rounded-[2rem] border border-blue-100 flex items-center gap-3">
-            <div class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
-            <span class="text-sm font-black text-blue-600 uppercase tracking-widest">{{ appointments|length }} Appointments Today</span>
+        <div class="bg-amber-50 px-6 py-4 rounded-[2rem] border border-amber-100 flex items-center gap-3">
+            <div class="w-3 h-3 bg-amber-400 rounded-full animate-pulse"></div>
+            <span class="text-sm font-black text-amber-700 uppercase tracking-widest">{{ appointments|length }} Open Tickets</span>
         </div>
     </div>
 
     <div class="grid lg:grid-cols-3 gap-10">
-        
-        <div class="lg:col-span-2 space-y-10">
-            <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-100">
-                <div class="flex items-center gap-4 mb-10">
-                    <div class="bg-blue-100 p-4 rounded-3xl">
-                        <i data-lucide="calendar" class="w-8 h-8 text-blue-600"></i>
-                    </div>
-                    <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Upcoming Schedule</h2>
-                </div>
 
-                <div class="space-y-6">
-                    {% if appointments %}
-                        {% for apt in appointments %}
-                        <div class="p-8 border border-slate-100 rounded-[2rem] bg-slate-50 hover:bg-white hover:border-blue-600/20 hover:shadow-xl transition-all group">
-                            <div class="flex justify-between items-start">
-                                <div class="flex gap-6">
-                                    <div class="w-16 h-16 bg-slate-200 rounded-2xl flex items-center justify-center font-black text-slate-400 text-2xl uppercase">
-                                        {{ apt.patient.name[0] }}
-                                    </div>
-                                    <div>
-                                        <h3 class="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{{ apt.patient.name }}</h3>
-                                        <div class="flex items-center gap-3 mt-2">
-                                            <span class="text-xs font-bold text-slate-400 flex items-center gap-1 uppercase tracking-widest">
-                                                <i data-lucide="clock" class="w-3 h-3"></i> {{ apt.date.strftime('%H:%M') }}
-                                            </span>
-                                            <span class="text-xs font-bold text-slate-400 flex items-center gap-1 uppercase tracking-widest">
-                                                <i data-lucide="calendar-days" class="w-3 h-3"></i> {{ apt.date.strftime('%d %b') }}
-                                            </span>
-                                        </div>
-                                        <div class="mt-4 p-4 bg-white rounded-2xl border border-slate-100 text-sm font-medium text-slate-600">
-                                            <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest mr-3">Reason:</span>
-                                            {{ apt.reason or "Routine Checkup" }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="flex flex-col items-end gap-4">
-                                    <span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest 
-                                        {% if apt.status == 'confirmed' %}bg-emerald-100 text-emerald-700
-                                        {% elif apt.status == 'pending' %}bg-amber-100 text-amber-700
-                                        {% else %}bg-slate-200 text-slate-600{% endif %}">
-                                        {{ apt.status }}
-                                    </span>
-                                    <div class="flex gap-2">
-                                        <a 
-                                            href="{{ url_for('consultation.chat', user_id=apt.patient.id) }}"
-                                            class="p-3 bg-white text-blue-600 border border-slate-200 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-lg"
-                                        >
-                                            <i data-lucide="message-circle" class="w-5 h-5"></i>
-                                        </a>
-                                        <a 
-                                            href="{{ url_for('consultation.video_call', user_id=apt.patient.id) }}"
-                                            class="p-3 bg-white text-emerald-600 border border-slate-200 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-lg"
-                                        >
-                                            <i data-lucide="video" class="w-5 h-5"></i>
-                                        </a>
-                                        {% if apt.status == 'confirmed' %}
-                                        <button 
-                                            onclick="openPrescriptionModal({{ apt.patient.id }}, {{ apt.id }}, '{{ apt.patient.name }}')"
-                                            class="p-3 bg-white text-blue-600 border border-slate-200 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-lg"
-                                            title="Generate Prescription"
-                                        >
-                                            <i data-lucide="file-text" class="w-5 h-5"></i>
-                                        </button>
-                                        {% endif %}
-                                        {% if apt.status == 'pending' %}
-                                        <button 
-                                            onclick="updateStatus({{ apt.id }}, 'confirmed')"
-                                            class="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg"
-                                        >
-                                            <i data-lucide="check-circle" class="w-5 h-5"></i>
-                                        </button>
-                                        {% endif %}
-                                    </div>
-                                </div>
+        <!-- Left: Ticket Grid -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="flex items-center gap-4 mb-2">
+                <div class="bg-blue-100 p-3 rounded-2xl">
+                    <i data-lucide="inbox" class="w-6 h-6 text-blue-600"></i>
+                </div>
+                <h2 class="text-xl font-extrabold text-slate-900">Patient Ticket Inbox</h2>
+            </div>
+
+            {% if appointments %}
+                {% for apt in appointments %}
+                {% set reason_lower = (apt.reason or '')|lower %}
+                {% if 'high' in reason_lower or 'critical' in reason_lower %}
+                    {% set risk = 'high' %}
+                {% elif 'medium' in reason_lower or 'moderate' in reason_lower %}
+                    {% set risk = 'medium' %}
+                {% else %}
+                    {% set risk = 'low' %}
+                {% endif %}
+
+                <div class="bg-white p-8 rounded-[2rem] shadow-lg border border-slate-100 hover:border-blue-200 hover:shadow-2xl transition-all group">
+                    <div class="flex items-start justify-between gap-6">
+                        <!-- Avatar + Info — clicking opens modal -->
+                        <div class="flex items-center gap-5 flex-1 cursor-pointer"
+                             onclick="openPatientModal({{ apt.patient.id }}, '{{ apt.patient.name }}', `{{ apt.reason | replace('`', "'") | replace('\n', '\\n') }}`, {{ apt.id }})">
+                            <div class="w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl text-white uppercase shrink-0
+                                {% if risk == 'high' %}bg-red-500{% elif risk == 'medium' %}bg-amber-500{% else %}bg-indigo-500{% endif %}">
+                                {{ apt.patient.name[0] }}
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-black text-slate-900 group-hover:text-blue-600 transition-colors">{{ apt.patient.name }}</h3>
+                                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
+                                    <i data-lucide="clock" class="w-3 h-3 inline mr-1"></i>Received {{ apt.created_at.strftime('%d %b %Y • %H:%M') }}
+                                </p>
+                                {% if apt.proposed_date %}
+                                <p class="text-xs text-emerald-600 font-black uppercase tracking-widest mt-2 flex items-center gap-1">
+                                    <i data-lucide="calendar-check" class="w-3 h-3"></i>
+                                    Scheduled: {{ apt.proposed_date.strftime('%d %b %Y at %H:%M') }}
+                                </p>
+                                {% endif %}
+                                <p class="text-sm text-slate-500 font-medium mt-2 line-clamp-2">{{ (apt.reason or 'No reason provided.')[:120] }}...</p>
                             </div>
                         </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="text-center py-20 bg-slate-50 rounded-[2.5rem] border border-dashed border-slate-200">
-                            <i data-lucide="calendar-off" class="w-16 h-16 mx-auto mb-6 text-slate-200"></i>
-                            <p class="text-slate-400 font-extrabold uppercase tracking-widest text-sm">No Appointments Scheduled</p>
+
+                        <!-- Badges & Actions -->
+                        <div class="flex flex-col items-end gap-3 shrink-0">
+                            <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest
+                                {% if risk == 'high' %}bg-red-100 text-red-700
+                                {% elif risk == 'medium' %}bg-amber-100 text-amber-700
+                                {% else %}bg-emerald-100 text-emerald-700{% endif %}">
+                                {{ risk }} priority
+                            </span>
+                            <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest
+                                {% if apt.status == 'confirmed' %}bg-emerald-100 text-emerald-700
+                                {% else %}bg-slate-100 text-slate-500{% endif %}">
+                                {{ apt.status }}
+                            </span>
+                            <div class="flex gap-2 mt-1">
+                                <!-- Set Date Button -->
+                                <button onclick="openSetDateModal({{ apt.id }}, '{{ apt.patient.name }}')"
+                                    class="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20"
+                                    title="Set Appointment Date">
+                                    <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+                                </button>
+                                {% if apt.status == 'confirmed' %}
+                                <button onclick="openPrescriptionModal({{ apt.patient.id }}, {{ apt.id }}, '{{ apt.patient.name }}')"
+                                    class="p-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/20"
+                                    title="Write Prescription">
+                                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                                </button>
+                                {% endif %}
+                            </div>
                         </div>
-                    {% endif %}
+                    </div>
                 </div>
-            </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-24 bg-white rounded-[2.5rem] border border-dashed border-slate-200">
+                    <i data-lucide="inbox" class="w-16 h-16 mx-auto mb-6 text-slate-200"></i>
+                    <p class="text-slate-400 font-extrabold uppercase tracking-widest text-sm">No Patient Tickets Yet</p>
+                    <p class="text-slate-300 text-xs mt-2">Patients will appear here once they book a consultation</p>
+                </div>
+            {% endif %}
         </div>
 
-        <div class="space-y-10">
-            <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-100 sticky top-28">
-                <div class="flex items-center gap-4 mb-10">
-                    <div class="bg-emerald-100 p-4 rounded-3xl">
-                        <i data-lucide="users" class="w-8 h-8 text-emerald-600"></i>
+        <!-- Right: My Patients -->
+        <div>
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 sticky top-28">
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="bg-emerald-100 p-3 rounded-2xl">
+                        <i data-lucide="users" class="w-6 h-6 text-emerald-600"></i>
                     </div>
-                    <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Patient Registry</h2>
+                    <h2 class="text-xl font-extrabold text-slate-900">My Patients</h2>
                 </div>
-
-                <div class="space-y-6">
+                <div class="space-y-4">
                     {% if patients %}
-                        {% for patient in patients %}
-                        <div class="p-6 border border-slate-100 rounded-3xl bg-slate-50 hover:bg-white hover:border-emerald-600/20 hover:shadow-xl transition-all group cursor-pointer">
+                        {% for pt in patients %}
+                        <div class="p-4 border border-slate-100 rounded-2xl bg-slate-50 hover:bg-white hover:border-emerald-300 hover:shadow-lg transition-all cursor-pointer group"
+                             onclick="loadPatientHistory({{ pt.id }}, '{{ pt.name }}')">
                             <div class="flex items-center gap-4">
-                                <div class="w-12 h-12 bg-slate-200 rounded-2xl flex items-center justify-center font-black text-slate-400 text-lg uppercase">
-                                    {{ patient.name[0] }}
+                                <div class="w-11 h-11 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl flex items-center justify-center font-black text-white text-lg uppercase">
+                                    {{ pt.name[0] }}
                                 </div>
                                 <div>
-                                    <h4 class="font-black text-slate-900 group-hover:text-emerald-600 transition-colors">{{ patient.name }}</h4>
-                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Last visited: 2 days ago</p>
+                                    <h4 class="font-black text-slate-900 group-hover:text-emerald-600 transition-colors text-sm">{{ pt.name }}</h4>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">View clinical record →</p>
                                 </div>
                             </div>
                         </div>
                         {% endfor %}
                     {% else %}
-                        <div class="text-center py-10">
-                            <i data-lucide="user-minus" class="w-10 h-10 mx-auto mb-4 text-slate-200"></i>
-                            <p class="text-slate-400 font-extrabold uppercase tracking-widest text-[10px]">No Patient Data</p>
+                        <div class="text-center py-8">
+                            <i data-lucide="user-minus" class="w-8 h-8 mx-auto mb-3 text-slate-200"></i>
+                            <p class="text-slate-400 font-bold uppercase tracking-widest text-[10px]">No patients yet</p>
                         </div>
                     {% endif %}
                 </div>
             </div>
         </div>
-
     </div>
 </div>
 
-<!-- Prescription Modal -->
-<div id="prescription-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
-    <div class="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div class="p-8 bg-blue-600 text-white flex justify-between items-center">
+<!-- ===== SET APPOINTMENT DATE MODAL ===== -->
+<div id="set-date-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+    <div class="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden">
+        <div class="p-8 bg-gradient-to-r from-blue-600 to-indigo-700 text-white flex justify-between items-center">
             <div>
-                <h3 class="text-2xl font-black tracking-tight">Digital Prescription</h3>
-                <p class="text-blue-100 text-xs font-bold uppercase tracking-widest mt-1" id="modal-patient-name"></p>
+                <p class="text-blue-200 text-[10px] font-black uppercase tracking-widest">Appointment Scheduling</p>
+                <h3 class="text-2xl font-black tracking-tight mt-1">Set Date & Time</h3>
+                <p class="text-blue-100 text-xs font-medium mt-1" id="set-date-patient-name"></p>
             </div>
-            <button onclick="closePrescriptionModal()" class="p-2 hover:bg-white/10 rounded-xl transition-all">
+            <button onclick="closeSetDateModal()" class="p-3 hover:bg-white/10 rounded-2xl transition-all">
                 <i data-lucide="x" class="w-6 h-6"></i>
             </button>
         </div>
-        
         <div class="p-8 space-y-6">
-            <div id="medicines-list" class="space-y-4">
-                <div class="medicine-row grid grid-cols-3 gap-4">
-                    <input type="text" placeholder="Medicine Name" class="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
-                    <input type="text" placeholder="Dosage (e.g. 1-0-1)" class="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
-                    <input type="text" placeholder="Duration" class="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
+            <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Select Appointment Date & Time</label>
+                <input type="datetime-local" id="proposed-date-input"
+                    class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    min="{{ '' }}">
+            </div>
+            <button id="confirm-date-btn"
+                class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-sm hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3">
+                <i data-lucide="calendar-check" class="w-5 h-5"></i>
+                Confirm Appointment Date
+            </button>
+            <p class="text-[10px] text-slate-400 font-medium text-center">Patient will receive a notification with the confirmed date immediately.</p>
+        </div>
+    </div>
+</div>
+
+<!-- ===== CLINICAL DEEP-DIVE MODAL ===== -->
+<div id="patient-modal" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+    <div class="bg-white w-full max-w-3xl max-h-[90vh] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col">
+        <div class="p-8 bg-gradient-to-r from-slate-900 to-blue-900 text-white flex justify-between items-center shrink-0">
+            <div>
+                <p class="text-blue-300 text-[10px] font-black uppercase tracking-widest">Patient Clinical Record</p>
+                <h3 class="text-2xl font-black tracking-tight mt-1" id="modal-patient-name-header">Loading...</h3>
+                <p class="text-slate-300 text-xs font-medium mt-1" id="modal-patient-email"></p>
+            </div>
+            <button onclick="closePatientModal()" class="p-3 hover:bg-white/10 rounded-2xl transition-all">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+        <div class="flex border-b border-slate-100 shrink-0 bg-slate-50">
+            <button onclick="switchTab('triage')" id="tab-triage" class="modal-tab px-6 py-4 text-xs font-black uppercase tracking-widest border-b-2 text-blue-600" style="border-bottom-color:#2563eb">
+                <i data-lucide="brain-circuit" class="w-3 h-3 inline mr-1"></i>AI Triage
+            </button>
+            <button onclick="switchTab('history')" id="tab-history" class="modal-tab px-6 py-4 text-xs font-black uppercase tracking-widest border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition-colors">
+                <i data-lucide="history" class="w-3 h-3 inline mr-1"></i>Medical History
+            </button>
+            <button onclick="switchTab('prescribe')" id="tab-prescribe" class="modal-tab px-6 py-4 text-xs font-black uppercase tracking-widest border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition-colors">
+                <i data-lucide="file-text" class="w-3 h-3 inline mr-1"></i>Prescribe
+            </button>
+        </div>
+        <div class="overflow-y-auto flex-1 p-8">
+            <div id="panel-triage" class="tab-panel space-y-4">
+                <div class="p-6 bg-blue-50 rounded-2xl border border-blue-100">
+                    <h4 class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <i data-lucide="zap" class="w-3 h-3"></i> AI Consultation Summary
+                    </h4>
+                    <p id="modal-triage-text" class="text-sm font-medium text-slate-700 leading-relaxed whitespace-pre-wrap">Loading...</p>
                 </div>
             </div>
-            
-            <div class="flex items-center gap-4">
-                <button onclick="addMedicineRow()" class="flex items-center gap-2 text-blue-600 font-black text-xs uppercase tracking-widest hover:underline">
+            <div id="panel-history" class="tab-panel hidden space-y-4">
+                <!-- Patient quick-info banner -->
+                <div id="modal-patient-meta" class="hidden space-y-2 mb-4"></div>
+                <!-- Latest vitals banner -->
+                <div id="modal-vitals-banner" class="hidden p-4 bg-indigo-50 rounded-2xl border border-indigo-100 mb-4"></div>
+                <div id="modal-history-content">
+                    <div class="text-center py-12">
+                        <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="panel-prescribe" class="tab-panel hidden space-y-5">
+                <div id="prescribe-medicines-list" class="space-y-3">
+                    <div class="medicine-row grid grid-cols-3 gap-3">
+                        <input type="text" placeholder="Medicine Name" class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/20">
+                        <input type="text" placeholder="Dosage" class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/20">
+                        <input type="text" placeholder="Duration" class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/20">
+                    </div>
+                </div>
+                <button onclick="addPrescribeRow()" class="flex items-center gap-2 text-blue-600 font-black text-xs uppercase tracking-widest hover:underline">
                     <i data-lucide="plus" class="w-4 h-4"></i> Add Medicine
                 </button>
-                <div class="h-4 w-[1px] bg-slate-200"></div>
-                <button onclick="clearMedicines()" class="flex items-center gap-2 text-red-400 font-black text-[10px] uppercase tracking-widest hover:text-red-600 transition-colors">
-                    <i data-lucide="trash-2" class="w-3 h-3"></i> Clear List
+                <textarea id="modal-prescription-notes" class="w-full h-28 p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium resize-none outline-none focus:ring-2 focus:ring-blue-500/20" placeholder="Doctor's advice..."></textarea>
+                <button id="modal-save-rx-btn" class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-sm hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all">
+                    Generate &amp; Send Prescription
                 </button>
             </div>
+        </div>
+    </div>
+</div>
 
+<!-- Legacy Prescription Modal -->
+<div id="prescription-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+    <div class="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden">
+        <div class="p-8 bg-blue-600 text-white flex justify-between items-center">
             <div>
-                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Doctor's Advice / Notes</label>
-                <textarea id="prescription-notes" class="w-full h-32 p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium resize-none outline-none focus:ring-4 focus:ring-blue-500/10" placeholder="e.g. Avoid cold water, complete bed rest..."></textarea>
+                <h3 class="text-2xl font-black">Digital Prescription</h3>
+                <p class="text-blue-100 text-xs font-bold uppercase tracking-widest mt-1" id="modal-patient-name"></p>
             </div>
-
-            <button id="save-prescription-btn" class="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-lg hover:bg-blue-700 shadow-2xl shadow-blue-500/20 transition-all active:scale-[0.98]">
-                Generate & Send Prescription
+            <button onclick="closePrescriptionModal()" class="p-2 hover:bg-white/10 rounded-xl">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+        <div class="p-8 space-y-5">
+            <div id="medicines-list" class="space-y-4">
+                <div class="medicine-row grid grid-cols-3 gap-4">
+                    <input type="text" placeholder="Medicine Name" class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
+                    <input type="text" placeholder="Dosage" class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
+                    <input type="text" placeholder="Duration" class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
+                </div>
+            </div>
+            <button onclick="addMedicineRow()" class="flex items-center gap-2 text-blue-600 font-black text-xs uppercase tracking-widest hover:underline">
+                <i data-lucide="plus" class="w-4 h-4"></i> Add Medicine
+            </button>
+            <textarea id="prescription-notes" class="w-full h-28 p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium resize-none"></textarea>
+            <button id="save-prescription-btn" class="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-lg hover:bg-blue-700 shadow-2xl shadow-blue-500/20 transition-all">
+                Generate &amp; Send Prescription
             </button>
         </div>
     </div>
 </div>
 
+<style>
+    .line-clamp-2 { overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+</style>
+
 <script>
-    let currentPatientId = null;
-    let currentAppointmentId = null;
+let modalPatientId = null;
+let modalAppointmentId = null;
+let setDateAppointmentId = null;
 
-    async function updateStatus(aptId, status) {
-        try {
-            const response = await fetch('/consultation/update-appointment-status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ appointment_id: aptId, status: status })
-            });
-            if (response.ok) {
-                window.location.reload();
-            }
-        } catch (err) {
-            console.error('Failed to update status:', err);
-        }
+/* ---- Set Date Modal ---- */
+function openSetDateModal(aptId, patientName) {
+    setDateAppointmentId = aptId;
+    document.getElementById('set-date-patient-name').innerText = `For: ${patientName}`;
+    // Default to tomorrow
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+    const pad = n => String(n).padStart(2,'0');
+    document.getElementById('proposed-date-input').value =
+        `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth()+1)}-${pad(tomorrow.getDate())}T${pad(tomorrow.getHours())}:${pad(tomorrow.getMinutes())}`;
+    document.getElementById('set-date-modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeSetDateModal() {
+    document.getElementById('set-date-modal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+document.getElementById('confirm-date-btn').addEventListener('click', async () => {
+    const proposed = document.getElementById('proposed-date-input').value;
+    if (!proposed) { alert('Please select a date and time.'); return; }
+    const btn = document.getElementById('confirm-date-btn');
+    btn.disabled = true; btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin inline"></i> Confirming...';
+    lucide.createIcons();
+    try {
+        const res = await fetch('/consultation/set-appointment-date', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ appointment_id: setDateAppointmentId, proposed_date: proposed })
+        });
+        const data = await res.json();
+        if (data.error) { alert(data.error); }
+        else { closeSetDateModal(); window.location.reload(); }
+    } catch(e) {
+        alert('Failed to set date.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="calendar-check" class="w-5 h-5 inline mr-2"></i>Confirm Appointment Date';
+        lucide.createIcons();
     }
+});
 
-    function openPrescriptionModal(patientId, aptId, patientName) {
-        currentPatientId = patientId;
-        currentAppointmentId = aptId;
-        document.getElementById('modal-patient-name').innerText = `Patient: ${patientName}`;
-        document.getElementById('prescription-modal').classList.remove('hidden');
+/* ---- Clinical Modal ---- */
+function openPatientModal(patientId, patientName, triageReason, aptId) {
+    modalPatientId = patientId;
+    modalAppointmentId = aptId;
+    document.getElementById('modal-patient-name-header').innerText = patientName;
+    document.getElementById('modal-triage-text').innerText = triageReason || 'No AI triage data available.';
+    document.getElementById('patient-modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    switchTab('triage');
+    loadPatientHistory(patientId, patientName);
+}
+
+function closePatientModal() {
+    document.getElementById('patient-modal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+async function loadPatientHistory(patientId, patientName) {
+    modalPatientId = patientId;
+    if (document.getElementById('patient-modal').classList.contains('hidden')) {
+        document.getElementById('modal-patient-name-header').innerText = patientName;
+        document.getElementById('modal-triage-text').innerText = 'Open a ticket to see AI Triage.';
+        document.getElementById('patient-modal').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
+        switchTab('history');
     }
+    const container = document.getElementById('modal-history-content');
+    container.innerHTML = `<div class="text-center py-12"><div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>`;
+    try {
+        const res = await fetch(`/doctor/patient-history/${patientId}`);
+        const data = await res.json();
 
-    function closePrescriptionModal() {
-        document.getElementById('prescription-modal').classList.add('hidden');
-        document.body.style.overflow = 'auto';
-    }
+        // Patient meta
+        if (data.patient) {
+            document.getElementById('modal-patient-email').innerText = data.patient.email || '';
+            // Show enriched patient info banner
+            const metaBanner = document.getElementById('modal-patient-meta');
+            if (metaBanner) {
+                const p = data.patient;
+                metaBanner.innerHTML = `
+                    <div class="grid grid-cols-3 gap-3 text-center">
+                        <div class="bg-slate-50 rounded-xl p-3">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Blood Group</p>
+                            <p class="text-sm font-black text-red-600 mt-1">${p.blood_group||'—'}</p>
+                        </div>
+                        <div class="bg-slate-50 rounded-xl p-3">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">DOB</p>
+                            <p class="text-sm font-black text-slate-800 mt-1">${p.dob||'—'}</p>
+                        </div>
+                        <div class="bg-emerald-50 rounded-xl p-3">
+                            <p class="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Emergency</p>
+                            <p class="text-xs font-bold text-slate-700 mt-1">${p.emergency_contact||'—'}</p>
+                        </div>
+                    </div>
+                    ${p.allergies && p.allergies !== '—' ? `<div class="mt-2 p-3 bg-red-50 rounded-xl border border-red-100"><span class="text-[9px] font-black text-red-600 uppercase tracking-widest">⚠ Allergies: </span><span class="text-xs font-bold text-slate-700">${p.allergies}</span></div>` : ''}
+                    ${p.chronic_conditions && p.chronic_conditions !== '—' ? `<div class="mt-2 p-3 bg-amber-50 rounded-xl border border-amber-100"><span class="text-[9px] font-black text-amber-600 uppercase tracking-widest">Chronic: </span><span class="text-xs font-bold text-slate-700">${p.chronic_conditions}</span></div>` : ''}
+                `;
+                metaBanner.classList.remove('hidden');
+            }
+        }
 
-    function addMedicineRow() {
-        const list = document.getElementById('medicines-list');
-        const row = document.createElement('div');
-        row.className = 'medicine-row grid grid-cols-3 gap-4 animate-in slide-in-from-top-2 duration-200';
-        row.innerHTML = `
-            <input type="text" placeholder="Medicine Name" class="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
-            <input type="text" placeholder="Dosage (e.g. 1-0-1)" class="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
-            <input type="text" placeholder="Duration" class="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
-        `;
-        list.appendChild(row);
-    }
+        // Vitals
+        if (data.vitals) {
+            const vitalsBanner = document.getElementById('modal-vitals-banner');
+            if (vitalsBanner) {
+                const v = data.vitals;
+                vitalsBanner.innerHTML = `
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Latest Vitals — ${v.recorded_at}</p>
+                    <div class="grid grid-cols-4 gap-2">
+                        ${v.bp ? `<div class="text-center bg-white rounded-xl p-2 border border-slate-100"><p class="text-[8px] font-black text-slate-400 uppercase">BP</p><p class="text-sm font-black text-slate-800">${v.bp}</p></div>` : ''}
+                        ${v.pulse ? `<div class="text-center bg-white rounded-xl p-2 border border-slate-100"><p class="text-[8px] font-black text-slate-400 uppercase">Pulse</p><p class="text-sm font-black text-slate-800">${v.pulse} bpm</p></div>` : ''}
+                        ${v.spo2 ? `<div class="text-center bg-white rounded-xl p-2 border border-slate-100"><p class="text-[8px] font-black text-slate-400 uppercase">SpO₂</p><p class="text-sm font-black text-slate-800">${v.spo2}%</p></div>` : ''}
+                        ${v.temp ? `<div class="text-center bg-white rounded-xl p-2 border border-slate-100"><p class="text-[8px] font-black text-slate-400 uppercase">Temp</p><p class="text-sm font-black text-slate-800">${v.temp}°C</p></div>` : ''}
+                    </div>
+                `;
+                vitalsBanner.classList.remove('hidden');
+            }
+        }
 
-    function clearMedicines() {
-        const list = document.getElementById('medicines-list');
-        list.innerHTML = `
-            <div class="medicine-row grid grid-cols-3 gap-4">
-                <input type="text" placeholder="Medicine Name" class="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
-                <input type="text" placeholder="Dosage (e.g. 1-0-1)" class="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
-                <input type="text" placeholder="Duration" class="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
-            </div>
-        `;
-    }
-
-    document.getElementById('save-prescription-btn').addEventListener('click', async () => {
-        const rows = document.querySelectorAll('.medicine-row');
-        const medicines = Array.from(rows).map(row => {
-            const inputs = row.querySelectorAll('input');
-            return {
-                name: inputs[0].value,
-                dosage: inputs[1].value,
-                duration: inputs[2].value
-            };
-        }).filter(m => m.name);
-
-        const notes = document.getElementById('prescription-notes').value;
-
-        if (medicines.length === 0) {
-            alert('Please add at least one medicine');
+        if (!data.history || !data.history.length) {
+            container.innerHTML = `<div class="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200"><p class="text-slate-400 font-bold uppercase tracking-widest text-xs mt-4">No medical history found</p></div>`;
             return;
         }
 
-        const btn = document.getElementById('save-prescription-btn');
-        btn.disabled = true;
-        btn.innerText = 'Generating...';
+        const typeConfig = {
+            'Prescription': { icon: 'pill', bg: 'emerald-100', text: 'emerald-600' },
+            'Lab Report': { icon: 'microscope', bg: 'purple-100', text: 'purple-600' },
+            'Medical Record': { icon: 'stethoscope', bg: 'blue-100', text: 'blue-600' },
+        };
 
-        try {
-            const response = await fetch('/doctor/create-prescription', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    patient_id: currentPatientId,
-                    appointment_id: currentAppointmentId,
-                    medicines: medicines,
-                    notes: notes
-                })
-            });
-            const data = await response.json();
-            alert(data.message);
-            closePrescriptionModal();
-            window.location.reload();
-        } catch (err) {
-            alert('Failed to generate prescription');
-            btn.disabled = false;
-            btn.innerText = 'Generate & Send Prescription';
-        }
-    });
-
-    async function updateStatus(aptId, status) {
-        try {
-            const response = await fetch('/consultation/update-appointment-status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ appointment_id: aptId, status: status })
-            });
-            const data = await response.json();
-            alert(data.message || data.error);
-            window.location.reload();
-        } catch (err) {
-            alert('Update failed');
-        }
+        container.innerHTML = data.history.map(entry => {
+            const cfg = typeConfig[entry.type] || { icon: 'file', bg: 'slate-100', text: 'slate-600' };
+            const riskColor = entry.risk === 'high' ? 'red' : entry.risk === 'medium' ? 'amber' : 'emerald';
+            return `<div class="p-5 border border-slate-100 rounded-2xl bg-slate-50 hover:bg-white hover:shadow-md transition-all mb-3">
+                <div class="flex items-start justify-between gap-3 mb-2">
+                    <div class="flex items-start gap-3">
+                        <div class="p-2 rounded-xl bg-${cfg.bg} shrink-0">
+                            <i data-lucide="${cfg.icon}" class="w-4 h-4 text-${cfg.text}"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">${entry.date} &bull; ${entry.type}</p>
+                            <h4 class="font-black text-slate-900 text-sm">${entry.title}</h4>
+                            ${entry.icd_code ? `<span class="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full mt-1 inline-block">ICD: ${entry.icd_code}</span>` : ''}
+                        </div>
+                    </div>
+                    ${entry.risk && entry.type !== 'Prescription' ? `<span class="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-${riskColor}-100 text-${riskColor}-700 shrink-0">${entry.risk}</span>` : ''}
+                    ${entry.is_active === false ? `<span class="text-[9px] font-black text-slate-400 bg-slate-100 px-2 py-1 rounded-full shrink-0">Expired</span>` : ''}
+                </div>
+                <p class="text-sm text-slate-500 font-medium pl-11">${entry.detail||''}</p>
+                ${entry.notes ? `<p class="text-xs text-amber-600 font-bold pl-11 mt-1 italic">${entry.notes}</p>` : ''}
+                ${entry.diagnosis_at_rx ? `<p class="text-xs text-blue-600 font-bold pl-11 mt-1">Dx: ${entry.diagnosis_at_rx}</p>` : ''}
+            </div>`;
+        }).join('');
+        lucide.createIcons();
+    } catch(e) {
+        container.innerHTML = `<div class="text-center py-12"><p class="text-red-400 font-bold text-sm">Failed to load history.</p></div>`;
     }
+}
+
+function switchTab(name) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('.modal-tab').forEach(t => { t.style.borderBottomColor='transparent'; t.classList.remove('text-blue-600'); t.classList.add('text-slate-400'); });
+    document.getElementById('panel-'+name).classList.remove('hidden');
+    const activeTab = document.getElementById('tab-'+name);
+    activeTab.style.borderBottomColor = '#2563eb';
+    activeTab.classList.add('text-blue-600');
+    activeTab.classList.remove('text-slate-400');
+}
+
+function addPrescribeRow() {
+    const list = document.getElementById('prescribe-medicines-list');
+    const row = document.createElement('div');
+    row.className = 'medicine-row grid grid-cols-3 gap-3';
+    row.innerHTML = `
+        <input type="text" placeholder="Medicine Name" class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none">
+        <input type="text" placeholder="Dosage" class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none">
+        <input type="text" placeholder="Duration" class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none">
+    `;
+    list.appendChild(row);
+}
+
+document.getElementById('modal-save-rx-btn').addEventListener('click', async () => {
+    const rows = document.querySelectorAll('#prescribe-medicines-list .medicine-row');
+    const medicines = Array.from(rows).map(r => {
+        const inp = r.querySelectorAll('input');
+        return { name: inp[0].value, dosage: inp[1].value, duration: inp[2].value };
+    }).filter(m => m.name);
+    if (!medicines.length) { alert('Add at least one medicine.'); return; }
+    const btn = document.getElementById('modal-save-rx-btn');
+    btn.disabled = true; btn.innerText = 'Sending...';
+    try {
+        const res = await fetch('/doctor/create-prescription', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ patient_id: modalPatientId, appointment_id: modalAppointmentId, medicines, notes: document.getElementById('modal-prescription-notes').value })
+        });
+        const data = await res.json();
+        alert(data.message || data.error);
+        closePatientModal();
+    } catch(e) { alert('Failed to send.'); }
+    finally { btn.disabled=false; btn.innerText='Generate & Send Prescription'; }
+});
+
+/* ---- Legacy Prescription ---- */
+let currentPatientId = null, currentAppointmentId = null;
+function openPrescriptionModal(pid, aid, name) {
+    currentPatientId=pid; currentAppointmentId=aid;
+    document.getElementById('modal-patient-name').innerText=`Patient: ${name}`;
+    document.getElementById('prescription-modal').classList.remove('hidden');
+    document.body.style.overflow='hidden';
+}
+function closePrescriptionModal() {
+    document.getElementById('prescription-modal').classList.add('hidden');
+    document.body.style.overflow='auto';
+}
+function addMedicineRow() {
+    const list=document.getElementById('medicines-list');
+    const row=document.createElement('div');
+    row.className='medicine-row grid grid-cols-3 gap-4';
+    row.innerHTML=`<input type="text" placeholder="Medicine Name" class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold"><input type="text" placeholder="Dosage" class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold"><input type="text" placeholder="Duration" class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">`;
+    list.appendChild(row);
+}
+document.getElementById('save-prescription-btn').addEventListener('click', async () => {
+    const rows=document.querySelectorAll('#medicines-list .medicine-row');
+    const medicines=Array.from(rows).map(r=>{const i=r.querySelectorAll('input');return{name:i[0].value,dosage:i[1].value,duration:i[2].value};}).filter(m=>m.name);
+    if(!medicines.length){alert('Add medicine.');return;}
+    const btn=document.getElementById('save-prescription-btn');btn.disabled=true;btn.innerText='Generating...';
+    try{const res=await fetch('/doctor/create-prescription',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:currentPatientId,appointment_id:currentAppointmentId,medicines,notes:document.getElementById('prescription-notes').value})});const data=await res.json();alert(data.message);closePrescriptionModal();window.location.reload();}
+    catch(e){alert('Failed.');btn.disabled=false;btn.innerText='Generate & Send Prescription';}
+});
 </script>
 {% endblock %}

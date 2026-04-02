@@ -1,68 +1,209 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-slate-50 px-6 py-12">
-    <div class="max-w-md w-full bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-100">
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center px-6 py-16">
+    <div class="max-w-2xl w-full bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-100">
+        
+        <!-- Header -->
         <div class="text-center mb-10">
-            <div class="inline-flex p-4 bg-blue-100 rounded-[1.5rem] mb-6">
-                <i data-lucide="user-plus" class="w-8 h-8 text-blue-600"></i>
+            <div class="inline-flex p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-[1.5rem] mb-6 shadow-xl shadow-blue-500/20">
+                <i data-lucide="user-plus" class="w-8 h-8 text-white"></i>
             </div>
-            <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Create Account</h2>
-            <p class="text-slate-500 mt-2 font-medium">Join our advanced medical platform</p>
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Create Your Account</h1>
+            <p class="text-slate-500 mt-2 font-medium">Join MedMining AI — your intelligent health platform</p>
         </div>
 
-        <form method="POST" action="{{ url_for('auth.register') }}" class="space-y-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="mb-6 p-4 rounded-2xl {% if category == 'danger' %}bg-red-50 border border-red-200 text-red-700{% else %}bg-emerald-50 border border-emerald-200 text-emerald-700{% endif %} text-sm font-bold">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('auth.register') }}" class="space-y-6">
+
+            <!-- Role Toggle -->
             <div>
-                <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Full Name</label>
-                <input type="text" name="name" required class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium" placeholder="John Doe">
+                <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-3">I am a</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="role" value="patient" id="role-patient" class="sr-only peer" checked>
+                        <div class="flex items-center gap-3 p-4 border-2 border-slate-100 rounded-2xl peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-all">
+                            <i data-lucide="user" class="w-5 h-5 text-slate-400 peer-checked:text-blue-600"></i>
+                            <div>
+                                <p class="font-black text-slate-800 text-sm">Patient</p>
+                                <p class="text-[10px] text-slate-400 uppercase tracking-widest">Seeking care</p>
+                            </div>
+                        </div>
+                    </label>
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="role" value="doctor" id="role-doctor" class="sr-only peer">
+                        <div class="flex items-center gap-3 p-4 border-2 border-slate-100 rounded-2xl peer-checked:border-emerald-500 peer-checked:bg-emerald-50 transition-all">
+                            <i data-lucide="stethoscope" class="w-5 h-5 text-slate-400"></i>
+                            <div>
+                                <p class="font-black text-slate-800 text-sm">Doctor</p>
+                                <p class="text-[10px] text-slate-400 uppercase tracking-widest">Providing care</p>
+                            </div>
+                        </div>
+                    </label>
+                </div>
             </div>
-            <div>
-                <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Email Address</label>
-                <input type="email" name="email" required class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium" placeholder="your@email.com">
-            </div>
-            <div>
-                <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Password</label>
-                <input type="password" name="password" required class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium" placeholder="••••••••">
-            </div>
-            <div>
-                <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Role</label>
-                <select name="role" id="role-select" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium">
-                    <option value="patient">Patient</option>
-                    <option value="doctor">Doctor</option>
-                </select>
-            </div>
-            <div id="patient-fields" class="grid grid-cols-2 gap-4">
+
+            <!-- Shared Fields -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                    <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Full Name *</label>
+                    <input type="text" name="name" required placeholder="John Doe"
+                        class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium">
+                </div>
                 <div>
-                    <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Age</label>
-                    <input type="number" name="age" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium" placeholder="25">
+                    <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Email *</label>
+                    <input type="email" name="email" required placeholder="you@email.com"
+                        class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Phone</label>
+                    <input type="tel" name="phone" placeholder="+91 98765 43210"
+                        class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Password *</label>
+                    <input type="password" name="password" required placeholder="••••••••"
+                        class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Date of Birth</label>
+                    <input type="date" name="dob"
+                        class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium">
                 </div>
                 <div>
                     <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Gender</label>
-                    <select name="gender" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium">
+                    <select name="gender"
+                        class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium">
+                        <option value="">Select</option>
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
-                        <option value="Other">Other</option>
+                        <option value="Non-binary">Non-binary</option>
+                        <option value="Prefer not to say">Prefer not to say</option>
                     </select>
                 </div>
             </div>
-            <div id="spec-field" class="hidden">
-                <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Specialization</label>
-                <input type="text" name="specialization" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium" placeholder="Cardiology, Neurology, etc.">
+
+            <!-- ===== PATIENT FIELDS ===== -->
+            <div id="patient-fields" class="space-y-4">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="h-px flex-1 bg-slate-100"></div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Patient Information</span>
+                    <div class="h-px flex-1 bg-slate-100"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Blood Group</label>
+                        <select name="blood_group"
+                            class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium">
+                            <option value="">Unknown</option>
+                            <option>A+</option><option>A-</option>
+                            <option>B+</option><option>B-</option>
+                            <option>O+</option><option>O-</option>
+                            <option>AB+</option><option>AB-</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Allergies</label>
+                        <input type="text" name="allergies" placeholder="Penicillin, Peanuts..."
+                            class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Chronic Conditions</label>
+                        <input type="text" name="chronic_conditions" placeholder="Diabetes, Hypertension..."
+                            class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Home Address</label>
+                        <textarea name="address" rows="2" placeholder="123 Main St, City..."
+                            class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium resize-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Emergency Contact Name</label>
+                        <input type="text" name="emergency_contact_name" placeholder="Jane Doe"
+                            class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Emergency Contact Phone</label>
+                        <input type="tel" name="emergency_contact_phone" placeholder="+91 99999 00000"
+                            class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium">
+                    </div>
+                </div>
             </div>
-            <button type="submit" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] mt-6">Register Now</button>
+
+            <!-- ===== DOCTOR FIELDS ===== -->
+            <div id="doctor-fields" class="hidden space-y-4">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="h-px flex-1 bg-slate-100"></div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Professional Details</span>
+                    <div class="h-px flex-1 bg-slate-100"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Specialization *</label>
+                        <input type="text" name="specialization" placeholder="Cardiology"
+                            class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Years of Experience</label>
+                        <input type="number" name="years_experience" min="0" max="60" placeholder="10"
+                            class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Medical License No.</label>
+                        <input type="text" name="medical_license_no" placeholder="MCI-12345"
+                            class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Consultation Fee (₹)</label>
+                        <input type="number" name="consultation_fee" min="0" placeholder="500"
+                            class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Hospital / Clinic</label>
+                        <input type="text" name="hospital_affiliation" placeholder="Apollo Hospital, Mumbai"
+                            class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Languages Spoken</label>
+                        <input type="text" name="languages_spoken" placeholder="English, Hindi, Tamil"
+                            class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Professional Bio</label>
+                        <textarea name="bio" rows="3" placeholder="Brief description of your practice, expertise, and approach..."
+                            class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium resize-none"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit"
+                class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-2xl font-black text-lg hover:from-blue-700 hover:to-indigo-700 shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] mt-2">
+                Create Account →
+            </button>
         </form>
 
-        <p class="text-center mt-10 text-slate-500 font-medium">
-            Already have an account? 
-            <a href="{{ url_for('auth.login') }}" class="text-blue-600 font-bold hover:underline">Login Here</a>
+        <p class="text-center mt-8 text-slate-500 font-medium">
+            Already have an account?
+            <a href="{{ url_for('auth.login') }}" class="text-blue-600 font-bold hover:underline ml-1">Sign In</a>
         </p>
     </div>
 </div>
 
 <script>
-    document.getElementById('role-select').addEventListener('change', function() {
-        document.getElementById('spec-field').classList.toggle('hidden', this.value !== 'doctor');
-        document.getElementById('patient-fields').classList.toggle('hidden', this.value !== 'patient');
-    });
+    const radios = document.querySelectorAll('input[name="role"]');
+    radios.forEach(r => r.addEventListener('change', () => {
+        const isDoctor = document.getElementById('role-doctor').checked;
+        document.getElementById('doctor-fields').classList.toggle('hidden', !isDoctor);
+        document.getElementById('patient-fields').classList.toggle('hidden', isDoctor);
+    }));
 </script>
 {% endblock %}

@@ -85,3 +85,10 @@ logs/
 # Other
 *.sqlite3
 db.sqlite3
+
+# GSD related
+.agent/
+.planning/
+
+# Temporary files
+tmp/

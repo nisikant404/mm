@@ -74,3 +74,35 @@ def update_status():
         db.session.commit()
         return jsonify({"message": "Status updated!"})
     return jsonify({"error": "Unauthorized"}), 403
+
+@consultation.route('/set-appointment-date', methods=['POST'])
+@login_required
+def set_appointment_date():
+    """Doctor sets a proposed date that the patient will see."""
+    if current_user.role != 'doctor':
+        return jsonify({"error": "Unauthorized"}), 403
+    data = request.get_json()
+    apt_id = data.get('appointment_id')
+    proposed_str = data.get('proposed_date')  # ISO format: "2026-04-10T14:30"
+
+    appointment = Appointment.query.get(apt_id)
+    if not appointment or appointment.doctor_id != current_user.id:
+        return jsonify({"error": "Not found or unauthorized"}), 403
+
+    try:
+        proposed = datetime.strptime(proposed_str, '%Y-%m-%dT%H:%M')
+        appointment.proposed_date = proposed
+        appointment.status = 'confirmed'
+
+        notification = Notification(
+            user_id=appointment.patient_id,
+            title="Appointment Confirmed",
+            message=f"{current_user.name} has confirmed your appointment on {proposed.strftime('%d %b %Y at %H:%M')}."
+        )
+        db.session.add(notification)
+        db.session.commit()
+        return jsonify({"message": f"Appointment set for {proposed.strftime('%d %b %Y at %H:%M')}."})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+

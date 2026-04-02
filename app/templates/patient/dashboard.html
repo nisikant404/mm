@@ -114,7 +114,50 @@
                 </div>
             </div>
 
-            
+            <!-- Upcoming Appointments Section -->
+            <div class="bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-100">
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="bg-blue-100 p-4 rounded-3xl">
+                        <i data-lucide="calendar-check" class="w-8 h-8 text-blue-600"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Upcoming Appointments</h2>
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Confirmed by your doctors</p>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    {% set has_confirmed = namespace(value=false) %}
+                    {% for apt in appointments %}
+                        {% if apt.proposed_date %}
+                        {% set has_confirmed.value = true %}
+                        <div class="p-6 border border-slate-100 rounded-[2rem] bg-slate-50 hover:bg-white hover:shadow-lg transition-all flex items-center justify-between gap-6">
+                            <div class="flex items-center gap-5">
+                                <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center font-black text-white text-xl uppercase">
+                                    {{ apt.doctor.name[0] if apt.doctor else 'D' }}
+                                </div>
+                                <div>
+                                    <h3 class="font-black text-slate-900">{{ apt.doctor.name if apt.doctor else 'Unknown Doctor' }}</h3>
+                                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{{ apt.doctor.specialization if apt.doctor else '' }}</p>
+                                    <p class="text-sm font-bold text-emerald-600 mt-2 flex items-center gap-2">
+                                        <i data-lucide="calendar" class="w-3 h-3"></i>
+                                        {{ apt.proposed_date.strftime('%d %B %Y at %H:%M') }}
+                                    </p>
+                                </div>
+                            </div>
+                            <span class="px-4 py-2 bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-widest rounded-full">Confirmed</span>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                    {% if not has_confirmed.value %}
+                    <div class="text-center py-10 bg-slate-50 rounded-[2.5rem] border border-dashed border-slate-200">
+                        <i data-lucide="calendar-x" class="w-10 h-10 mx-auto mb-3 text-slate-200"></i>
+                        <p class="text-slate-400 font-bold uppercase tracking-widest text-xs">No confirmed appointments yet</p>
+                        <p class="text-slate-300 text-[10px] font-medium mt-1">Use the AI Symptom Checker to request a consultation</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
             <!-- Digital Prescriptions Section -->
             <div class="bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-100">
                 <div class="flex items-center gap-4 mb-10">
@@ -299,6 +342,7 @@
 
     </div>
 </div>
+{% endblock %}
 
 {% block scripts %}
 <script>

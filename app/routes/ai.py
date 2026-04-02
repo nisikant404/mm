@@ -200,19 +200,29 @@ def simulated_lab_response(filename: str, file_bytes: bytes) -> dict:
 
 def parse_json_from_gemini_text(text: str) -> dict:
     """
-    Gemini sometimes wraps JSON in markdown fences or adds leading text.
+    Gemini sometimes wraps JSON in markdown fences or adds leading/trailing text.
     This helper extracts the most likely JSON object and parses it.
     """
-    cleaned = (text or '').strip()
+    if not text:
+        raise ValueError("AI response text is empty")
+        
+    cleaned = text.strip()
+    # Remove markdown code fences if present
     cleaned = cleaned.replace('```json', '').replace('```', '').strip()
+    
     try:
         return json.loads(cleaned)
     except Exception:
+        # Fallback: extract the first { and last }
         start = cleaned.find('{')
         end = cleaned.rfind('}')
         if start != -1 and end != -1 and end > start:
-            return json.loads(cleaned[start:end + 1])
-        raise
+            json_block = cleaned[start:end + 1]
+            try:
+                return json.loads(json_block)
+            except Exception as e:
+                raise ValueError(f"Extracted JSON block is invalid: {str(e)}")
+        raise ValueError("No JSON object found in AI response")
 
 def auto_save_record(result: dict, kind: str, symptoms_val: str = "") -> bool:
     try:
@@ -248,6 +258,17 @@ def auto_save_record(result: dict, kind: str, symptoms_val: str = "") -> bool:
                 risk_score=75 if any(f.get('status') != 'normal' for f in result.get('findings', [])) else 15,
                 risk_level=result.get('risk_assessment', {}).get('level', 'low'),
                 ai_suggestions=", ".join(result.get('risk_assessment', {}).get('action_plan', [])),
+                is_medicine_report=False
+            )
+        elif kind == "chat_summary":
+            record = MedicalRecord(
+                patient_id=current_user.id,
+                symptoms=", ".join(result.get('reported_symptoms', []))[:500] if result.get('reported_symptoms') else "Symptom Chat",
+                diagnosis=result.get('probable_diagnosis', 'Pending Review'),
+                notes=f"Recommended Specialist: {result.get('specialist_domain', 'General')}\nSummary: {result.get('summary', '')}",
+                risk_score=70 if result.get('severity', 'low').lower() in ['high', 'urgent'] else 30,
+                risk_level=result.get('severity', 'low').lower(),
+                ai_suggestions=", ".join(result.get('next_steps', [])),
                 is_medicine_report=False
             )
         else:
@@ -616,4 +637,86 @@ def symptom_chat():
         response = client.models.generate_content(model=sdk_model_name, contents=contents)
         return jsonify({"response": response.text, "ai_model": label_model_name})
     except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@ai_bp.route('/symptom-chat-save', methods=['POST'])
+@login_required
+def symptom_chat_save():
+    try:
+        data = request.get_json()
+        chat_history = data.get('history', [])
+        save_record = data.get('save_record', True)
+
+        if not chat_history:
+            return jsonify({"error": "Chat history is empty"}), 400
+
+        sdk_model_name, label_model_name = resolve_ai_model_name(None, default='gemini-2.5-flash')
+        client = get_genai_client()
+        if not client:
+            # Simulation Mode
+            summary = {
+                "reported_symptoms": ["Simulation symptom 1", "Simulation symptom 2"],
+                "probable_diagnosis": "Simulated Generic Condition",
+                "specialist_domain": "General Physician",
+                "severity": "low",
+                "summary": "This is a simulated summary because the AI model is not configured.",
+                "next_steps": ["Consult a real doctor if symptoms persist."]
+            }
+        else:
+            prompt = """
+            You are a medical data extraction bot.
+            Analyze the following conversational history between a patient and a medical triage AI.
+            Extract the following information into a strict JSON format (NO extra text, ONLY the JSON block):
+            {
+                "reported_symptoms": ["list of symptoms MUST be strictly transcribed verbatim as the patient narrated them, without any AI extrapolation"],
+                "probable_diagnosis": "A concise, single probable diagnosis based on the AI's feedback (or 'Unknown' if not established)",
+                "specialist_domain": "The most appropriate doctor specialization for this issue (e.g. 'Cardiologist', 'Dermatologist', 'General Physician')",
+                "severity": "low, medium, or high (based on the urgency of the symptoms)",
+                "summary": "A 1-2 sentence clinical summary of the session",
+                "next_steps": ["list of action items recommended by the AI"]
+            }
+
+            Conversational History:
+            """
+            
+            # Format history for prompt
+            formatted_history = "\n".join([f"{'Patient' if i % 2 == 0 else 'AI'}: {msg}" for i, msg in enumerate(chat_history)])
+            full_prompt = f"{prompt}\n{formatted_history}"
+
+            max_retries = 2
+            attempts = 0
+            summary = None
+            last_error = ""
+
+            while attempts <= max_retries:
+                try:
+                    response = client.models.generate_content(model=sdk_model_name, contents=full_prompt)
+                    summary = parse_json_from_gemini_text(response.text)
+                    if summary:
+                        break
+                except Exception as e:
+                    attempts += 1
+                    last_error = str(e)
+                    print(f"Symptom chat save attempt {attempts} failed: {last_error}")
+                    if attempts <= max_retries:
+                        # Optional: slightly modify the prompt or add a 'JSON ONLY' reminder for the retry
+                        full_prompt += "\n\nCRITICAL: You MUST return ONLY the JSON block. No introductory text."
+            
+            if not summary:
+                raise ValueError(f"AI failed to generate valid JSON summary after {max_retries + 1} attempts. Last error: {last_error}")
+
+        # Save to DB if requested
+        saved = False
+        if save_record:
+            saved = auto_save_record(summary, "chat_summary")
+
+        return jsonify({
+            "status": "success",
+            "saved": saved,
+            "specialist_domain": summary.get("specialist_domain", "General Physician"),
+            "diagnosis": summary.get("probable_diagnosis", "Unknown")
+        })
+
+    except Exception as e:
+        print("Error in /symptom-chat-save:", str(e))
         return jsonify({"error": str(e)}), 500

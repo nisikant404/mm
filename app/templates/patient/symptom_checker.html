@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto py-8">
+<div class="max-w-6xl mx-auto py-8">
     <div class="mb-6 px-4">
         <a href="{{ url_for('patient.dashboard') }}" class="inline-flex items-center gap-2 text-slate-500 hover:text-blue-600 font-black text-[10px] uppercase tracking-[0.2em] transition-all group">
             <div class="p-2 bg-white rounded-lg border border-slate-100 group-hover:border-blue-100 shadow-sm">
@@ -11,7 +11,11 @@
         </a>
     </div>
 
-    <div class="h-[calc(100vh-12rem)] bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col border border-slate-100 mx-4">
+    <!-- Layout Grid -->
+    <div class="flex flex-col lg:flex-row gap-6 px-4 h-[calc(100vh-12rem)]">
+        
+    <!-- Main Chat Container -->
+    <div class="flex-1 bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col border border-slate-100 h-full">
     <!-- Header -->
     <div class="p-8 bg-slate-900 text-white flex items-center justify-between">
         <div class="flex items-center gap-4">
@@ -44,11 +48,21 @@
     </div>
 
     <!-- Disclaimer -->
-    <div class="px-8 py-3 bg-amber-50 border-y border-amber-100 flex items-center gap-3">
-        <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600"></i>
-        <p class="text-[10px] font-bold text-amber-700 uppercase tracking-widest leading-none">
-            Disclaimer: This is for informational purposes only and is not a clinical diagnosis.
-        </p>
+    <div class="px-8 py-3 bg-amber-50 border-y border-amber-100 flex justify-between items-center gap-3">
+        <div class="flex items-center gap-3">
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600"></i>
+            <p class="text-[10px] font-bold text-amber-700 uppercase tracking-widest leading-none">
+                Disclaimer: This is for informational purposes only...
+            </p>
+        </div>
+        <label class="flex items-center gap-2 cursor-pointer group">
+            <span class="text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-slate-700 transition-colors">Auto-Save Session</span>
+            <div class="relative">
+                <input type="checkbox" id="save-record-toggle" class="peer sr-only" checked>
+                <div class="block w-8 h-4 bg-slate-200 rounded-full transition-colors peer-checked:bg-emerald-500"></div>
+                <div class="dot absolute left-1 top-1 bg-white w-2 h-2 rounded-full transition-transform peer-checked:translate-x-4"></div>
+            </div>
+        </label>
     </div>
 
     <!-- Input Form -->
@@ -60,11 +74,37 @@
             placeholder="Describe your symptoms (e.g. 'I have a headache and feel nauseous')..."
             autocomplete="off"
         >
-        <button type="submit" id="send-btn" class="bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all active:scale-95">
+        <button type="submit" id="send-btn" class="bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all active:scale-95 shrink-0">
             <i data-lucide="send" class="w-6 h-6"></i>
         </button>
+        <button type="button" id="complete-btn" class="bg-emerald-500 text-white px-6 py-4 rounded-2xl hover:bg-emerald-600 shadow-xl shadow-emerald-500/20 transition-all active:scale-95 shrink-0 items-center justify-center gap-2 hidden">
+            <span class="font-bold text-sm tracking-wide">Finish</span>
+            <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+        </button>
     </form>
+    </div> <!-- End Main Chat -->
+
+    <!-- Doctor Sidebar (Hidden Initially) -->
+    <div id="doctor-sidebar" class="w-full lg:w-96 bg-white rounded-[2.5rem] shadow-lg border border-slate-100 flex-col overflow-hidden h-full hidden opacity-0 transition-opacity duration-500">
+         <div class="p-6 bg-emerald-50 border-b border-emerald-100 flex items-center gap-4">
+             <div class="bg-emerald-600 p-2.5 rounded-xl shrink-0">
+                 <i data-lucide="stethoscope" class="w-6 h-6 text-white"></i>
+             </div>
+             <div>
+                <h3 class="font-black text-slate-800 tracking-tight leading-tight">Matched Specialists</h3>
+                <p id="domain-label" class="text-[10px] font-bold text-emerald-700 uppercase tracking-widest leading-tight mt-1"></p>
+             </div>
+         </div>
+         <div id="doctor-list" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+             <!-- Doctor items go here dynamically -->
+         </div>
+    </div> <!-- End Sidebar -->
+
+    </div> <!-- End Layout Grid -->
 </div>
+
+<!-- Toast Notification Container -->
+<div id="toast-container" class="fixed bottom-8 right-8 z-50 flex flex-col gap-3"></div>
 
 <script>
 
@@ -176,6 +216,236 @@
     function removeTyping(id) {
         const el = document.getElementById(id);
         if (el) el.remove();
+    }
+
+    // JS Logic for completing the consultation
+    const completeBtn = document.getElementById('complete-btn');
+    const saveRecordToggle = document.getElementById('save-record-toggle');
+
+    completeBtn.addEventListener('click', async () => {
+        if (chatHistory.length === 0) return;
+        
+        completeBtn.disabled = true;
+        completeBtn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>';
+        lucide.createIcons();
+
+        try {
+            const response = await fetch('/ai/symptom-chat-save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    history: chatHistory,
+                    save_record: saveRecordToggle.checked 
+                })
+            });
+
+            if (!response.ok) throw new Error('Failed to save session');
+            const data = await response.json();
+            
+            if (data.saved) {
+                showToast('Consultation securely auto-saved!', 'success');
+            } else if (!saveRecordToggle.checked) {
+                showToast('Consultation ended (Not saved per your preference).', 'info');
+            } else {
+                showToast('Consultation ended, but saving failed.', 'warning');
+            }
+
+            // Lock the chat inputs
+            input.disabled = true;
+            document.getElementById('send-btn').disabled = true;
+            completeBtn.innerHTML = '<span class="font-bold text-sm tracking-wide">Done</span><i data-lucide="check" class="w-5 h-5"></i>';
+            lucide.createIcons();
+
+            // Trigger Phase 2 Sidebar Loading if a domain is returned
+            if (data.specialist_domain) {
+                fetchMatchedDoctors(data.specialist_domain);
+            }
+
+        } catch (err) {
+            console.error(err);
+            completeBtn.disabled = false;
+            completeBtn.innerHTML = '<span class="font-bold text-sm tracking-wide">Finish</span><i data-lucide="check-circle-2" class="w-5 h-5"></i>';
+            lucide.createIcons();
+            showToast('An error occurred finishing the session.', 'error');
+        }
+    });
+
+    async function fetchMatchedDoctors(domain) {
+        const sidebar = document.getElementById('doctor-sidebar');
+        const list = document.getElementById('doctor-list');
+        const domainLabel = document.getElementById('domain-label');
+        domainLabel.innerText = domain;
+        
+        // Show sidebar with loading state
+        sidebar.classList.remove('hidden');
+        setTimeout(() => sidebar.classList.remove('opacity-0'), 50);
+        list.innerHTML = `
+            <div class="flex flex-col items-center justify-center p-12 text-center">
+                <i data-lucide="loader-2" class="w-10 h-10 text-emerald-500 animate-spin mb-4"></i>
+                <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Finding best matches...</p>
+            </div>
+        `;
+        lucide.createIcons();
+
+        try {
+            const response = await fetch(`/patient/match-doctors/${encodeURIComponent(domain)}`);
+            const data = await response.json();
+            list.innerHTML = '';
+            
+            if (data.is_fallback) {
+                const fallbackMsg = document.createElement('div');
+                fallbackMsg.className = "p-4 bg-blue-50 border border-blue-100 rounded-2xl mb-4";
+                fallbackMsg.innerHTML = `
+                    <div class="flex items-center gap-2 mb-1">
+                        <i data-lucide="info" class="w-3 h-3 text-blue-600"></i>
+                        <span class="text-[9px] font-black uppercase tracking-widest text-blue-600">Recommendation Note</span>
+                    </div>
+                    <p class="text-[11px] font-bold text-blue-800 leading-relaxed">
+                        We couldn't find specific ${domain}s nearby. These **General Physicians** can provide a primary consultation and guide your next steps.
+                    </p>
+                `;
+                list.appendChild(fallbackMsg);
+                domainLabel.innerText = "General Physician (Fallback)";
+            }
+
+            if (!data.doctors || data.doctors.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center p-12 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
+                        <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="users" class="w-8 h-8 text-slate-200"></i>
+                        </div>
+                        <h4 class="text-sm font-black text-slate-800 uppercase tracking-tight mb-2">No Doctors Available</h4>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-loose">
+                            We couldn't find any available doctors at the moment. Please try again later or contact support.
+                        </p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            data.doctors.forEach(doc => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-6 border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-xl hover:border-blue-100 transition-all duration-300 flex flex-col gap-5 group";
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div class="flex gap-4">
+                            <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 font-black text-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                ${doc.name.charAt(0)}
+                            </div>
+                            <div>
+                                <h4 class="font-black text-slate-800 text-base leading-tight">Dr. ${doc.name}</h4>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="text-[9px] font-black text-blue-600 uppercase tracking-widest">${doc.specialization}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between px-2">
+                        <div class="flex flex-col">
+                            <span class="text-[8px] font-black text-slate-300 uppercase tracking-widest">Experience</span>
+                            <span class="text-xs font-black text-slate-700">${doc.years_experience} Years</span>
+                        </div>
+                        <div class="flex flex-col text-right">
+                            <span class="text-[8px] font-black text-slate-300 uppercase tracking-widest">Rating</span>
+                            <div class="flex gap-0.5 mt-0.5">
+                                <i data-lucide="star" class="w-2.5 h-2.5 text-amber-400 fill-amber-400"></i>
+                                <i data-lucide="star" class="w-2.5 h-2.5 text-amber-400 fill-amber-400"></i>
+                                <i data-lucide="star" class="w-2.5 h-2.5 text-amber-400 fill-amber-400"></i>
+                                <i data-lucide="star" class="w-2.5 h-2.5 text-amber-400 fill-amber-400"></i>
+                                <i data-lucide="star" class="w-2.5 h-2.5 text-slate-200"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="bookAppointment(${doc.id}, this)" class="w-full bg-slate-900 hover:bg-blue-600 text-white font-black text-[10px] uppercase tracking-[0.2em] py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-3 shadow-lg shadow-slate-200 group-hover:shadow-blue-500/20">
+                        <span>Book Appointment</span>
+                        <i data-lucide="calendar-plus" class="w-4 h-4 opacity-50 group-hover:opacity-100"></i>
+                    </button>
+                `;
+                list.appendChild(card);
+            });
+            lucide.createIcons();
+        } catch (e) {
+            console.error(e);
+            list.innerHTML = `
+                <div class="text-center p-12 bg-red-50 border border-red-100 rounded-[2.5rem]">
+                    <i data-lucide="alert-circle" class="w-10 h-10 text-red-500 mx-auto mb-4"></i>
+                    <p class="text-[10px] font-black text-red-600 uppercase tracking-widest">Connection Error: Could not match doctors.</p>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+    }
+
+    async function bookAppointment(doctorId, btnElement) {
+        btnElement.disabled = true;
+        const originalHtml = btnElement.innerHTML;
+        btnElement.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin inline mr-2"></i> Booking...';
+        lucide.createIcons();
+
+        // Fix: use single \n (not double-escaped) for the summary context
+        const summaryContext = chatHistory.length > 0 ? chatHistory.join('\n') : "User ended chat early.";
+
+        try {
+            const response = await fetch('/patient/book-ai-appointment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    doctor_id: doctorId,
+                    chat_summary: summaryContext
+                })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error || 'Failed to book');
+            }
+            
+            showToast('Appointment request sent! The doctor will confirm a date shortly.', 'success');
+            btnElement.innerHTML = '<i data-lucide="check" class="w-5 h-5 inline mr-2"></i> Request Sent';
+            btnElement.classList.remove('bg-slate-900', 'hover:bg-blue-600');
+            btnElement.classList.add('bg-emerald-600', 'cursor-default');
+            lucide.createIcons();
+        } catch (e) {
+            console.error(e);
+            showToast('Error: ' + e.message, 'error');
+            btnElement.disabled = false;
+            btnElement.innerHTML = originalHtml;
+            lucide.createIcons();
+        }
+    }
+
+    // Make complete button visible after at least one swap
+    form.addEventListener('submit', () => {
+        if (completeBtn.classList.contains('hidden')) {
+            completeBtn.classList.remove('hidden');
+            completeBtn.classList.add('flex');
+        }
+    });
+
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        const isSuccess = type === 'success';
+        const isInfo = type === 'info';
+        const color = isSuccess ? 'emerald' : (isInfo ? 'blue' : 'amber');
+        const icon = isSuccess ? 'check-circle-2' : (isInfo ? 'info' : 'alert-triangle');
+
+        toast.className = `flex items-center gap-3 bg-white px-5 py-4 rounded-xl shadow-lg border border-${color}-100 animate-in slide-in-from-right-8 fade-in duration-300`;
+        toast.innerHTML = `
+            <div class="w-8 h-8 rounded-full bg-${color}-50 flex items-center justify-center shrink-0">
+                <i data-lucide="${icon}" class="w-4 h-4 text-${color}-500"></i>
+            </div>
+            <p class="text-sm font-bold text-slate-700">${message}</p>
+        `;
+        document.getElementById('toast-container').appendChild(toast);
+        lucide.createIcons();
+
+        setTimeout(() => {
+            toast.classList.replace('animate-in', 'animate-out');
+            toast.classList.replace('slide-in-from-right-8', 'slide-out-to-right-8');
+            toast.classList.replace('fade-in', 'fade-out');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
     }
 </script>
 {% endblock %}

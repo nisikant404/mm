@@ -21,6 +21,7 @@ def add_column(table, column, type_def):
             print(f"Error adding {column} to {table}: {e}")
 
 # Add missing columns to 'user' table
+add_column('user', 'years_experience', 'INTEGER DEFAULT 0')
 add_column('user', 'age', 'INTEGER')
 add_column('user', 'gender', 'VARCHAR(20)')
 add_column('user', 'blood_group', 'VARCHAR(10)')
